@@ -125,7 +125,7 @@ class ImageWidget : public Fl_Widget {
                 currentColor = {255, 0, 0};
                 showGrid = false;
                 updateSize();
-                box(FL_FLAT_BOX);       // experimental
+                box(FL_BORDER_BOX);       // experimental
                 color(FL_BLACK);        // experimental
             }
         
@@ -296,6 +296,11 @@ void gridToggle(Fl_Widget *w, void *data) {
     widget->setShowGrid(btn->value());
 }
 
+void Oneraser(Fl_Widget *w, void *data) {
+    ImageWidget *widget = (ImageWidget *)data;
+    widget->setCurrentColor({0, 0, 0});
+}
+
 
 int main (int argc, char ** argv) {
     Fl_Window *window = new Fl_Window(1200, 800, "AnotherPixEditor");
@@ -321,13 +326,14 @@ int main (int argc, char ** argv) {
     
     Fl_Light_Button *grid_ON_OFF = new Fl_Light_Button(830, 60, 100, 30, "Gridline");
     grid_ON_OFF->callback(gridToggle, &widget);
-    
+    Fl_Button *eraser = new Fl_Button(830, 100, 100, 30, "Eraser");
+    eraser->callback(Oneraser, &widget);
     
     rightPanel->end();
     
    
-    menubar->add("File/Open", 0, load, &widget);
-    menubar->add("File/Save", 0, save, &widget);
+    menubar->add("File/Open" ,FL_CTRL + 'o', load, &widget);
+    menubar->add("File/Save", FL_CTRL + 's', save, &widget);
     menubar->add("Color", 0, chooseColor, &widget);
 
     
