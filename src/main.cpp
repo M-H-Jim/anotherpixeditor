@@ -23,6 +23,10 @@ struct Color {
     int b;
 };
 
+
+
+
+
 class Image {
     private:
         int width;
@@ -271,7 +275,10 @@ Image* ImageWidget::getImage() {
 
 
 
-
+struct uiData {
+    ImageWidget *widget;
+    Fl_Box *preview;
+};
 
 
 
@@ -287,7 +294,7 @@ Image* ImageWidget::getImage() {
 
 
 void chooseColor (Fl_Widget *w, void *data) {
-    ImageWidget *widget = (ImageWidget *)data;
+    uiData *ui = (uiData*)data;
     
     double r = 1.0;
     double g = 0.0;
@@ -298,8 +305,13 @@ void chooseColor (Fl_Widget *w, void *data) {
         c.r = (int) (r * 255);
         c.g = (int) (g * 255);
         c.b = (int) (b * 255);
-        widget->setCurrentColor(c);
+        
+        ui->widget->setCurrentColor(c);
+        
+        ui->preview->color (fl_rgb_color(c.r, c.g, c.b));
+        ui->preview->redraw();
     }
+    
 }
 
 void load (Fl_Widget *w, void *data) {
@@ -333,9 +345,14 @@ void gridToggle(Fl_Widget *w, void *data) {
 }
 
 void Oneraser(Fl_Widget *w, void *data) {
-    ImageWidget *widget = (ImageWidget *)data;
-    widget->setCurrentColor({0, 0, 0});
+    uiData *ui = (uiData*)data;
+    ui->widget->setCurrentColor({0, 0, 0});
+    ui->preview->color(fl_rgb_color(0,0,0));
+    ui->preview->redraw();
 }
+
+
+
 
 
 
@@ -350,35 +367,55 @@ int main (int argc, char ** argv) {
     Fl_Menu_Bar *menubar = new Fl_Menu_Bar(0, 0, 1200, 30);
     
     
-    Image *img = new Image(32, 32);
+    Image *img = new Image(16, 16);
     
-    Fl_Scroll *scroll = new Fl_Scroll(0, 30, 800, 700);
     
-    ImageWidget *widget = new ImageWidget(20, 50,
+    
+    
+    
+    
+    Fl_Group *leftPanel = new Fl_Group(0, 30, 250, 770);
+    leftPanel->box(FL_BORDER_BOX);
+    leftPanel->resizable(0);
+    //----------------------------------------------------------------------------------------------
+    Fl_Light_Button *grid_ON_OFF = new Fl_Light_Button(10, 40, 100, 30, "Gridline");
+    Fl_Button *eraser = new Fl_Button (10, 70, 100, 30, "Eraser");
+    
+    Fl_Box *preview = new Fl_Box(70, 110, 120, 25);
+    preview->box(FL_BORDER_BOX);
+    preview->color(fl_rgb_color(255,255,255));
+    Fl_Box *previewColorLabel = new Fl_Box (10, 110, 60, 25, "Color:");
+    previewColorLabel->labelfont(FL_BOLD);
+    
+    
+    //----------------------------------------------------------------------------------------------
+    leftPanel->end();
+    
+   
+   
+   
+   
+    Fl_Scroll *scroll = new Fl_Scroll(280, 50, 2 * img->getWidth() * 20, 2 * img->getHeight() * 20);
+    
+    ImageWidget *widget = new ImageWidget(280, 50,
                                        img->getWidth() * 20,
                                        img->getHeight() * 20,
                                        img);
     
     scroll->end();
     
+    uiData *ui = new uiData {widget, preview};
     
-    Fl_Group *rightPanel = new Fl_Group(810, 30, 380, 770);
-    rightPanel->box(FL_BORDER_BOX);
-    rightPanel->resizable(0);
     
-    Fl_Light_Button *grid_ON_OFF = new Fl_Light_Button(830, 60, 100, 30, "Gridline");
+    
+    
     grid_ON_OFF->callback(gridToggle, widget);
-    Fl_Button *eraser = new Fl_Button(830, 100, 100, 30, "Eraser");
-    eraser->callback(Oneraser, widget);
-    
-    rightPanel->end();
-    
-   
+    eraser->callback(Oneraser, ui);
     menubar->add("File/Open" ,FL_CTRL + 'o', load, widget);
     menubar->add("File/Save", FL_CTRL + 's', save, widget);
-    menubar->add("Color", 0, chooseColor, widget);
-
-
+    menubar->add("Color", 0, chooseColor, ui);
+    
+    
     
     
     window->resizable(scroll);
