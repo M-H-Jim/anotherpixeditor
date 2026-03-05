@@ -72,11 +72,6 @@ void Image::loadPPM (const std::string& filename) {
     std::string magic;
     in >> magic;
     
-    if (magic != "P3") {
-        std::cout << "||" << magic << "||" << std::endl;
-        throw std::runtime_error ("Not a P3 PPM file!");
-    }
-    
     in >> width >> height;
     int maxColor;
     in >> maxColor;
@@ -92,11 +87,6 @@ void Image::loadPPM (const std::string& filename) {
     }
 }
 
-
-
-
-
-
 Color Image::getPixel (int x, int y) const {
     return pixels[y * width + x];
 }
@@ -110,6 +100,10 @@ int Image::getHeight() const {
 }
 
 
+
+
+
+
 class ImageWidget : public Fl_Widget {
     private:
         Image *image;
@@ -121,131 +115,175 @@ class ImageWidget : public Fl_Widget {
         
     public:
         ImageWidget (int x, int y, int w, int h, Image *img) :
-            Fl_Widget (x, y, w, h), image (img), cellSize(20) {
-                currentColor = {255, 0, 0};
+            Fl_Widget (x, y, w, h), image (img), cellSize(20) 
+            {
+                currentColor = {255, 255, 255}; // white
                 showGrid = false;
                 updateSize();
                 box(FL_BORDER_BOX);       // experimental
-                color(FL_BLACK);        // experimental
             }
         
-        void setCurrentColor (const Color& c) {
-            currentColor = c;
-        }
+        //----------------------------------------
+        void draw () override;
+        int handle (int event) override;
+        void updateSize ();
         
-        void setShowGrid (bool value) {
-            showGrid = value;
-            redraw();
-        }
+        void setCurrentColor (const Color& c);
+        void setShowGrid (bool value);
+        void setCellSize (int size);
         
+        int getCellSize() const;
+        Image* getImage();
         
-        
-        
-        
-        // experimental
-        void updateSize () {
-            resize(x(), y(), image->getWidth() * cellSize, image->getHeight() * cellSize);
-        }
-        void setCellSize(int size) {
-            if (size < 2) {
-                size = 2;
-            }
-            if (size > 100) {
-                size = 100;
-            }
-            
-            cellSize = size;
-            updateSize();
-            redraw();
-            
-            if(parent()) parent()->redraw();
-            
-        }
-        int getCellSize() const {
-            return cellSize;
-        }
+        //----------------------------------------
         
         
         
-        void draw () override {
-            
-            draw_box();
+
+};
+
+
+
+
+
+
+
+
+
+void ImageWidget::setCurrentColor (const Color& c) {
+    currentColor = c;
+}
+
+void ImageWidget::setShowGrid (bool value) {
+    showGrid = value;
+    redraw();
+}
+
+// experimental
+void ImageWidget::updateSize () {
+    resize(x(), y(), image->getWidth() * cellSize, image->getHeight() * cellSize);
+    redraw();
+}
+
+
+
+
+
+
+
+void ImageWidget::setCellSize(int size) {
+    if (size < 2) {
+        size = 2;
+    }
+    if (size > 100) {
+        size = 100;
+    }
+    
+    cellSize = size;
+    updateSize();
+    
+    if(parent()) parent()->redraw();
+    
+}
+
+int ImageWidget::getCellSize() const {
+    return cellSize;
+}
+
+
+
+void ImageWidget::draw () {
+    
+//    draw_box();
 //            int widgetWidth = w();
 //            int widgetHeight = h();
 //
 //            int newCellSizeX = widgetWidth / image->getWidth();
 //            int newCellSizeY = widgetHeight / image->getHeight();
 //            cellSize = std::min(newCellSizeX, newCellSizeY);
+    
+    
+    for (int y = 0; y < image->getHeight(); y++) {
+        for (int x = 0; x < image->getWidth(); x++) {
+            Color c = image->getPixel(x, y);
             
+            fl_color (c.r, c.g, c.b);
+            fl_rectf (
+                this->x() + x * cellSize,
+                this->y() + y * cellSize,
+                cellSize,
+                cellSize
+            );
             
-            
-            for (int y = 0; y < image->getHeight(); y++) {
-                for (int x = 0; x < image->getWidth(); x++) {
-                    Color c = image->getPixel(x, y);
-                    
-                    fl_color (c.r, c.g, c.b);
-                    fl_rectf (
-                        this->x() + x * cellSize,
-                        this->y() + y * cellSize,
-                        cellSize,
-                        cellSize
-                    );
-                    
-                    if (showGrid) {
-                        fl_color(200, 200, 200);
-                        fl_rect(
-                            this->x() + x * cellSize,
-                            this->y() + y * cellSize,
-                            cellSize,
-                            cellSize
-                        );
-                    }
-                }
+            if (showGrid) {
+                fl_color(200, 200, 200);
+                fl_rect(
+                    this->x() + x * cellSize,
+                    this->y() + y * cellSize,
+                    cellSize,
+                    cellSize
+                );
             }
         }
-        int handle (int event) override {
-            switch (event) {
-                case FL_PUSH:
-                case FL_DRAG: {
-                    int mouseX = Fl::event_x();
-                    int mouseY = Fl::event_y();
+    }
+}
+int ImageWidget::handle (int event) {
+    switch (event) {
+        case FL_PUSH:
+        case FL_DRAG: {
+            int mouseX = Fl::event_x();
+            int mouseY = Fl::event_y();
+            
+            int gridX = (mouseX - x()) / cellSize;
+            int gridY = (mouseY - y()) / cellSize;
+            
+            if (gridX >= 0 && gridX < image->getWidth() && 
+                gridY >= 0 && gridY < image->getHeight()) {
+                    image->setPixel(gridX, gridY, currentColor);
                     
-                    int gridX = (mouseX - x()) / cellSize;
-                    int gridY = (mouseY - y()) / cellSize;
+                    int px = x() + gridX * cellSize;
+                    int py = y() + gridY * cellSize;
                     
-                    if (gridX >= 0 && gridX < image->getWidth() && 
-                        gridY >= 0 && gridY < image->getHeight()) {
-                            image->setPixel(gridX, gridY, currentColor);
-                            
-                            int px = x() + gridX * cellSize;
-                            int py = y() + gridY * cellSize;
-                            
-                            damage(FL_DAMAGE_USER1, px, py, cellSize, cellSize);
-                            
-                            
-//                            redraw();
-                        }
-                    return 1;
+                    damage(FL_DAMAGE_USER1, px, py, cellSize, cellSize);
                 }
+            return 1;
+        }
 
-                case FL_MOUSEWHEEL: {
-                    int dy = Fl::event_dy();
-                    if (dy < 0) {
-                        setCellSize(cellSize + 2);
-                    }
-                    else {
-                        setCellSize(cellSize - 2);
-                    }
-                    return 1;
-                }
-
+        case FL_MOUSEWHEEL: {
+            int dy = Fl::event_dy();
+            if (dy < 0) {
+                setCellSize(cellSize + 2);
             }
-            return Fl_Widget::handle(event);
+            else {
+                setCellSize(cellSize - 2);
+            }
+            return 1;
         }
-        Image* getImage() {
-            return image;
-        }
-};
+
+    }
+    return Fl_Widget::handle(event);
+}
+Image* ImageWidget::getImage() {
+    return image;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 void chooseColor (Fl_Widget *w, void *data) {
@@ -272,9 +310,7 @@ void load (Fl_Widget *w, void *data) {
     if (filename) {
         img->loadPPM(filename);
         widget->updateSize();
-        widget->redraw();
     }
-    
 }
 
 void save (Fl_Widget *w, void *data) {
@@ -302,22 +338,28 @@ void Oneraser(Fl_Widget *w, void *data) {
 }
 
 
+
+
+
+
 int main (int argc, char ** argv) {
-    Fl_Window *window = new Fl_Window(1200, 800, "AnotherPixEditor");
     Fl::scheme("oxy");
+    Fl_Window *window = new Fl_Window(1200, 800, "AnotherPixEditor");
     
     // menu bar
-     Fl_Menu_Bar *menubar = new Fl_Menu_Bar(0, 0, 1200, 30);
+    Fl_Menu_Bar *menubar = new Fl_Menu_Bar(0, 0, 1200, 30);
     
     
-    Image img(8, 8);
-    ImageWidget widget(20, 50, img.getWidth() * 20, img.getHeight() * 20, &img);
+    Image *img = new Image(32, 32);
     
-
     Fl_Scroll *scroll = new Fl_Scroll(0, 30, 800, 700);
-    scroll->box(FL_FLAT_BOX);
+    
+    ImageWidget *widget = new ImageWidget(20, 50,
+                                       img->getWidth() * 20,
+                                       img->getHeight() * 20,
+                                       img);
+    
     scroll->end();
-    scroll->add(widget);
     
     
     Fl_Group *rightPanel = new Fl_Group(810, 30, 380, 770);
@@ -325,37 +367,18 @@ int main (int argc, char ** argv) {
     rightPanel->resizable(0);
     
     Fl_Light_Button *grid_ON_OFF = new Fl_Light_Button(830, 60, 100, 30, "Gridline");
-    grid_ON_OFF->callback(gridToggle, &widget);
+    grid_ON_OFF->callback(gridToggle, widget);
     Fl_Button *eraser = new Fl_Button(830, 100, 100, 30, "Eraser");
-    eraser->callback(Oneraser, &widget);
+    eraser->callback(Oneraser, widget);
     
     rightPanel->end();
     
    
-    menubar->add("File/Open" ,FL_CTRL + 'o', load, &widget);
-    menubar->add("File/Save", FL_CTRL + 's', save, &widget);
-    menubar->add("Color", 0, chooseColor, &widget);
+    menubar->add("File/Open" ,FL_CTRL + 'o', load, widget);
+    menubar->add("File/Save", FL_CTRL + 's', save, widget);
+    menubar->add("Color", 0, chooseColor, widget);
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
     
     
     window->resizable(scroll);
