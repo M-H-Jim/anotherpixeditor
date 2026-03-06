@@ -424,9 +424,10 @@ void save (Fl_Widget *w, void *data) {
 
 void gridToggle (Fl_Widget *w, void *data) {
     ImageWidget* widget = (ImageWidget*)data;
-    Fl_Light_Button* btn = (Fl_Light_Button*)w;
+    Fl_Menu_Bar* menubar = (Fl_Menu_Bar*)w;
 
-    widget->setShowGrid(btn->value());
+    const Fl_Menu_Item* gridItem = menubar->find_item("Edit/Show Grid");
+    widget->setShowGrid(gridItem->value());
 }
 
 void Oneraser (Fl_Widget *w, void *data) {
@@ -518,7 +519,6 @@ int main (int argc, char ** argv) {
     leftPanel->box(FL_BORDER_BOX);
     leftPanel->resizable(0);
     //----------------------------------------------------------------------------------------------
-    Fl_Light_Button *grid_ON_OFF = new Fl_Light_Button(10, 40, 100, 30, "Gridline");
     Fl_Button *eraser = new Fl_Button (10, 70, 100, 30, "Eraser");
     
     Fl_Box *preview = new Fl_Box (70, 110, 120, 25);
@@ -558,8 +558,6 @@ int main (int argc, char ** argv) {
     
     
     
-    
-    grid_ON_OFF->callback(gridToggle, widget);
     eraser->callback(Oneraser, ui);
     pickColor->callback(OnPickColor, ui);
     
