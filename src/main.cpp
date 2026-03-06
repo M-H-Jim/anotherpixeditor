@@ -15,6 +15,13 @@
 #include <Fl/Fl_Menu_Bar.H>
 #include <Fl/Fl_File_Chooser.H>
 #include <Fl/Fl_Scroll.H>
+#include <FL/fl_show_colormap.H>
+#include <FL/fl_ask.H>
+
+
+const int MAX_UNDO = 50;
+
+
 
 
 struct Color {
@@ -23,7 +30,12 @@ struct Color {
     int b;
 };
 
-
+Color convertColor (Fl_Color c) {
+    unsigned char r, g, b;
+    Fl::get_color(c, r, g, b);
+    
+    return {r, g, b};
+}
 
 
 
@@ -34,6 +46,7 @@ class Image {
         std::vector<Color> pixels;
     public:
         Image (int w, int h);
+        Image (const Image& rval);
         void setPixel (int x, int y, const Color& color);
         Color getPixel (int x, int y) const;
         void savePPM (const std::string& filename) const;
@@ -44,8 +57,15 @@ class Image {
 };
 
 Image::Image (int w, int h) : width(w), height(h) {
-    pixels.resize(width * height, {0, 0, 0});
+    pixels.resize(width * height, {255, 255, 255});
 }
+Image::Image (const Image& rval) {
+    width = rval.width;
+    height = rval.height;
+    pixels = rval.pixels;
+}
+
+
 
 void Image::setPixel (int x, int y, const Color& color) {
     pixels[y * width + x] = color;
@@ -115,13 +135,14 @@ class ImageWidget : public Fl_Widget {
         Color currentColor;
         bool showGrid;
         
-        
+        std::vector<Image> undoStack;
+        std::vector<Image> redoStack;
         
     public:
         ImageWidget (int x, int y, int w, int h, Image *img) :
             Fl_Widget (x, y, w, h), image (img), cellSize(20) 
             {
-                currentColor = {255, 255, 255}; // white
+                currentColor = {0, 0, 0}; // white
                 showGrid = false;
                 updateSize();
                 box(FL_BORDER_BOX);       // experimental
@@ -131,12 +152,17 @@ class ImageWidget : public Fl_Widget {
         void draw () override;
         int handle (int event) override;
         void updateSize ();
+        void undo();
+        void redo();
+        
+        
         
         void setCurrentColor (const Color& c);
         void setShowGrid (bool value);
         void setCellSize (int size);
         
         int getCellSize() const;
+        Color getCurrentColor() const;
         Image* getImage();
         
         //----------------------------------------
@@ -153,7 +179,6 @@ class ImageWidget : public Fl_Widget {
 
 
 
-
 void ImageWidget::setCurrentColor (const Color& c) {
     currentColor = c;
 }
@@ -161,6 +186,37 @@ void ImageWidget::setCurrentColor (const Color& c) {
 void ImageWidget::setShowGrid (bool value) {
     showGrid = value;
     redraw();
+}
+
+
+void ImageWidget::undo() {
+    if (undoStack.empty()) {
+        return;
+    }
+    
+    redoStack.push_back(*image);
+    
+    if (redoStack.size() > MAX_UNDO) {
+        redoStack.erase(redoStack.begin());
+    }
+    
+    *image = undoStack.back();
+    undoStack.pop_back();
+    
+    redraw();
+}
+
+void ImageWidget::redo() {
+    if (redoStack.empty()) {
+        return;
+    }
+    
+    undoStack.push_back(*image);
+    *image = redoStack.back();
+    redoStack.pop_back();
+    
+    redraw();
+    
 }
 
 // experimental
@@ -193,7 +249,9 @@ void ImageWidget::setCellSize(int size) {
 int ImageWidget::getCellSize() const {
     return cellSize;
 }
-
+Color ImageWidget::getCurrentColor() const {
+    return currentColor;
+}
 
 
 void ImageWidget::draw () {
@@ -233,7 +291,34 @@ void ImageWidget::draw () {
 }
 int ImageWidget::handle (int event) {
     switch (event) {
-        case FL_PUSH:
+        case FL_PUSH: {
+            
+            undoStack.push_back(*image);
+            
+            if (undoStack.size() > MAX_UNDO) {
+                undoStack.erase(undoStack.begin());
+            }
+            
+            redoStack.clear();
+            
+            
+            int mouseX = Fl::event_x();
+            int mouseY = Fl::event_y();
+            
+            int gridX = (mouseX - x()) / cellSize;
+            int gridY = (mouseY - y()) / cellSize;
+            
+            if (gridX >= 0 && gridX < image->getWidth() && 
+                gridY >= 0 && gridY < image->getHeight()) {
+                    image->setPixel(gridX, gridY, currentColor);
+                    
+                    int px = x() + gridX * cellSize;
+                    int py = y() + gridY * cellSize;
+                    
+                    damage(FL_DAMAGE_USER1, px, py, cellSize, cellSize);
+                }
+            return 1;
+        }
         case FL_DRAG: {
             int mouseX = Fl::event_x();
             int mouseY = Fl::event_y();
@@ -337,31 +422,86 @@ void save (Fl_Widget *w, void *data) {
     
 }
 
-void gridToggle(Fl_Widget *w, void *data) {
+void gridToggle (Fl_Widget *w, void *data) {
     ImageWidget* widget = (ImageWidget*)data;
     Fl_Light_Button* btn = (Fl_Light_Button*)w;
 
     widget->setShowGrid(btn->value());
 }
 
-void Oneraser(Fl_Widget *w, void *data) {
+void Oneraser (Fl_Widget *w, void *data) {
     uiData *ui = (uiData*)data;
-    ui->widget->setCurrentColor({0, 0, 0});
-    ui->preview->color(fl_rgb_color(0,0,0));
+    ui->widget->setCurrentColor({255, 255, 255});
+    ui->preview->color(fl_rgb_color(255, 255, 255));
     ui->preview->redraw();
 }
 
+void OnPickColor (Fl_Widget *w, void *data) {
+    uiData *ui = (uiData*)data;
+    
+    Color c = ui->widget->getCurrentColor();
+    
+    
+    Fl_Color _c = fl_rgb_color (c.r, c.g, c.b);
+    _c = fl_show_colormap(_c);
+    
+    c = convertColor(_c);
+    
+    ui->widget->setCurrentColor(c);
+        
+    ui->preview->color (fl_rgb_color (c.r, c.g, c.b));
+    ui->preview->redraw();
+    
+    
+    
+}
 
+void OnClear (Fl_Widget *w, void *data) {
+    int r = fl_choice(
+                      "Clear the entire canvas?",
+                      "Cancel",
+                      "Yes",
+                      0
+    );
+    
+    if (r == 1) {
+        
+    }
+    
+}
 
+void OnUndo (Fl_Widget *w, void *data) {
+    ImageWidget *widget = (ImageWidget *)data;
+    widget->undo();
+}
+void OnRedo (Fl_Widget *w, void *data) {
+    ImageWidget *widget = (ImageWidget *)data;
+    widget->redo();
+}
 
-
-
-
+void OnAbout(Fl_Widget *w, void *data) {
+    fl_message(
+        "AnotherPixEditor\n"
+        "© 2026 M.H.Jim\n"
+        "Built with FLTK 1.4.4"
+    );
+}
 
 
 int main (int argc, char ** argv) {
-    Fl::scheme("oxy");
+    Fl::scheme("gleam");
+    
+    float r = 0.5f;
+    float g = 0.5f;
+    float b = 0.5f;
+    
     Fl_Window *window = new Fl_Window(1200, 800, "AnotherPixEditor");
+    window->color(fl_rgb_color(
+        (int)(r * 255),
+        (int)(g * 255),
+        (int)(b * 255)
+    ));
+    
     
     // menu bar
     Fl_Menu_Bar *menubar = new Fl_Menu_Bar(0, 0, 1200, 30);
@@ -381,11 +521,14 @@ int main (int argc, char ** argv) {
     Fl_Light_Button *grid_ON_OFF = new Fl_Light_Button(10, 40, 100, 30, "Gridline");
     Fl_Button *eraser = new Fl_Button (10, 70, 100, 30, "Eraser");
     
-    Fl_Box *preview = new Fl_Box(70, 110, 120, 25);
-    preview->box(FL_BORDER_BOX);
-    preview->color(fl_rgb_color(255,255,255));
+    Fl_Box *preview = new Fl_Box (70, 110, 120, 25);
+    preview->box (FL_BORDER_BOX);
+    preview->color (fl_rgb_color(0, 0, 0));
+    
     Fl_Box *previewColorLabel = new Fl_Box (10, 110, 60, 25, "Color:");
-    previewColorLabel->labelfont(FL_BOLD);
+    previewColorLabel->labelfont (FL_BOLD);
+    
+    Fl_Button *pickColor = new Fl_Button (10, 150, 100, 30, "pick color"); 
     
     
     //----------------------------------------------------------------------------------------------
@@ -396,6 +539,13 @@ int main (int argc, char ** argv) {
    
    
     Fl_Scroll *scroll = new Fl_Scroll(280, 50, 2 * img->getWidth() * 20, 2 * img->getHeight() * 20);
+
+
+    scroll->color(fl_rgb_color(
+        (int)(r * 255),
+        (int)(g * 255),
+        (int)(b * 255)
+    ));
     
     ImageWidget *widget = new ImageWidget(280, 50,
                                        img->getWidth() * 20,
@@ -411,9 +561,20 @@ int main (int argc, char ** argv) {
     
     grid_ON_OFF->callback(gridToggle, widget);
     eraser->callback(Oneraser, ui);
+    pickColor->callback(OnPickColor, ui);
+    
+    
+    
+    
     menubar->add("File/Open" ,FL_CTRL + 'o', load, widget);
     menubar->add("File/Save", FL_CTRL + 's', save, widget);
+    
+    menubar->add("Edit/Undo", FL_CTRL + 'z', OnUndo, widget);
+    menubar->add("Edit/Redo", FL_CTRL + 'y', OnRedo, widget);
+    menubar->add("Edit/Show Grid", 'g', gridToggle, widget, FL_MENU_TOGGLE);
+    
     menubar->add("Color", 0, chooseColor, ui);
+    menubar->add("About", 0, OnAbout);
     
     
     
