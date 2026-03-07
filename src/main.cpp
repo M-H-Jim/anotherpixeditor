@@ -134,6 +134,10 @@ class ImageWidget : public Fl_Widget {
         int cellSize;
         Color currentColor;
         bool showGrid;
+        bool mirrorHorizontal;
+        bool mirrorVertical;
+        
+        
         
         std::vector<Image> undoStack;
         std::vector<Image> redoStack;
@@ -144,6 +148,8 @@ class ImageWidget : public Fl_Widget {
             {
                 currentColor = {0, 0, 0}; // white
                 showGrid = false;
+                mirrorHorizontal = false;
+                mirrorVertical = false;
                 updateSize();
                 box(FL_BORDER_BOX);       // experimental
             }
@@ -151,6 +157,7 @@ class ImageWidget : public Fl_Widget {
         //----------------------------------------
         void draw () override;
         int handle (int event) override;
+        void drawAtMouse (int mouseX, int mouseY);
         void updateSize ();
         void undo();
         void redo();
@@ -159,6 +166,8 @@ class ImageWidget : public Fl_Widget {
         
         void setCurrentColor (const Color& c);
         void setShowGrid (bool value);
+        void setMirrorHorizontal (bool value);
+        void setMirrorVertical (bool value);
         void setCellSize (int size);
         
         int getCellSize() const;
@@ -188,6 +197,13 @@ void ImageWidget::setShowGrid (bool value) {
     redraw();
 }
 
+void ImageWidget::setMirrorHorizontal (bool value) {
+    mirrorHorizontal = value;
+}
+
+void ImageWidget::setMirrorVertical (bool value) {
+    mirrorVertical = value;
+}
 
 void ImageWidget::undo() {
     if (undoStack.empty()) {
@@ -289,6 +305,62 @@ void ImageWidget::draw () {
         }
     }
 }
+
+void ImageWidget::drawAtMouse(int mouseX, int mouseY) {
+    int gridX = (mouseX - x()) / cellSize;
+    int gridY = (mouseY - y()) / cellSize;
+            
+    if (gridX >= 0 && gridX < image->getWidth() && 
+        gridY >= 0 && gridY < image->getHeight()) {
+            
+            image->setPixel(gridX, gridY, currentColor);
+            
+            if (mirrorHorizontal) {
+                int mirror_x = image->getWidth() - 1 - gridX;
+                image->setPixel(mirror_x, gridY, currentColor);
+                
+                int px = x() + mirror_x * cellSize;
+                int py = y() + gridY * cellSize;
+                
+                damage(FL_DAMAGE_USER1, px, py, cellSize, cellSize);
+                
+            }
+            if (mirrorVertical) {
+                int mirror_y = image->getHeight() - 1 - gridY;
+                image->setPixel(gridX, mirror_y, currentColor);
+                
+                int px = x() + gridX * cellSize;
+                int py = y() + mirror_y * cellSize;
+                
+                damage(FL_DAMAGE_USER1, px, py, cellSize, cellSize);
+                
+            }
+            if (mirrorHorizontal && mirrorVertical) {
+                int mirror_x = image->getWidth() - 1 - gridX;
+                int mirror_y = image->getHeight() - 1 - gridY;
+                
+                image->setPixel(mirror_x, mirror_y, currentColor);
+                
+                int px = x() + mirror_x * cellSize;
+                int py = y() + mirror_y * cellSize;
+                
+                damage(FL_DAMAGE_USER1, px, py, cellSize, cellSize);
+            }
+            
+            
+            
+            
+            
+            
+                    
+            int px = x() + gridX * cellSize;
+            int py = y() + gridY * cellSize;
+            
+            damage(FL_DAMAGE_USER1, px, py, cellSize, cellSize);
+    }
+}
+
+
 int ImageWidget::handle (int event) {
     switch (event) {
         case FL_PUSH: {
@@ -301,40 +373,12 @@ int ImageWidget::handle (int event) {
             
             redoStack.clear();
             
+            drawAtMouse(Fl::event_x(), Fl::event_y());
             
-            int mouseX = Fl::event_x();
-            int mouseY = Fl::event_y();
-            
-            int gridX = (mouseX - x()) / cellSize;
-            int gridY = (mouseY - y()) / cellSize;
-            
-            if (gridX >= 0 && gridX < image->getWidth() && 
-                gridY >= 0 && gridY < image->getHeight()) {
-                    image->setPixel(gridX, gridY, currentColor);
-                    
-                    int px = x() + gridX * cellSize;
-                    int py = y() + gridY * cellSize;
-                    
-                    damage(FL_DAMAGE_USER1, px, py, cellSize, cellSize);
-                }
             return 1;
         }
         case FL_DRAG: {
-            int mouseX = Fl::event_x();
-            int mouseY = Fl::event_y();
-            
-            int gridX = (mouseX - x()) / cellSize;
-            int gridY = (mouseY - y()) / cellSize;
-            
-            if (gridX >= 0 && gridX < image->getWidth() && 
-                gridY >= 0 && gridY < image->getHeight()) {
-                    image->setPixel(gridX, gridY, currentColor);
-                    
-                    int px = x() + gridX * cellSize;
-                    int py = y() + gridY * cellSize;
-                    
-                    damage(FL_DAMAGE_USER1, px, py, cellSize, cellSize);
-                }
+            drawAtMouse(Fl::event_x(), Fl::event_y());
             return 1;
         }
 
@@ -422,13 +466,32 @@ void save (Fl_Widget *w, void *data) {
     
 }
 
-void gridToggle (Fl_Widget *w, void *data) {
+void OnGridToggle (Fl_Widget *w, void *data) {
     ImageWidget* widget = (ImageWidget*)data;
     Fl_Menu_Bar* menubar = (Fl_Menu_Bar*)w;
 
     const Fl_Menu_Item* gridItem = menubar->find_item("Edit/Show Grid");
     widget->setShowGrid(gridItem->value());
 }
+
+void OnHorizontalMirror (Fl_Widget *w, void *data) {
+    ImageWidget* widget = (ImageWidget*)data;
+    Fl_Menu_Bar* menubar = (Fl_Menu_Bar*)w;
+    
+    const Fl_Menu_Item* gridItem = menubar->find_item("Edit/Horizontal Mirror");
+    widget->setMirrorHorizontal(gridItem->value());
+    
+}
+void OnVerticalMirror (Fl_Widget *w, void *data) {
+    ImageWidget* widget = (ImageWidget*)data;
+    Fl_Menu_Bar* menubar = (Fl_Menu_Bar*)w;
+    
+    const Fl_Menu_Item* gridItem = menubar->find_item("Edit/Vertical Mirror");
+    widget->setMirrorVertical(gridItem->value());
+    
+}
+
+
 
 void Oneraser (Fl_Widget *w, void *data) {
     uiData *ui = (uiData*)data;
@@ -569,7 +632,10 @@ int main (int argc, char ** argv) {
     
     menubar->add("Edit/Undo", FL_CTRL + 'z', OnUndo, widget);
     menubar->add("Edit/Redo", FL_CTRL + 'y', OnRedo, widget);
-    menubar->add("Edit/Show Grid", 'g', gridToggle, widget, FL_MENU_TOGGLE);
+    menubar->add("Edit/Show Grid", 'g', OnGridToggle, widget, FL_MENU_TOGGLE);
+    menubar->add("Edit/Horizontal Mirror", FL_CTRL + FL_SHIFT + 'h', OnHorizontalMirror, widget, FL_MENU_TOGGLE);
+    menubar->add("Edit/Vertical Mirror", FL_CTRL + FL_SHIFT + 'v', OnVerticalMirror, widget, FL_MENU_TOGGLE);
+    
     
     menubar->add("Color", 0, chooseColor, ui);
     menubar->add("About", 0, OnAbout);
