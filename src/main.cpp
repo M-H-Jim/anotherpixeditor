@@ -137,7 +137,7 @@ class ImageWidget : public Fl_Widget {
         bool mirrorHorizontal;
         bool mirrorVertical;
         
-        
+        Fl_Box *previewBox = nullptr;
         
         std::vector<Image> undoStack;
         std::vector<Image> redoStack;
@@ -158,6 +158,7 @@ class ImageWidget : public Fl_Widget {
         void draw () override;
         int handle (int event) override;
         void drawAtMouse (int mouseX, int mouseY);
+        void pickColorAtMouse(int mouseX, int mouseY);
         void updateSize ();
         void undo();
         void redo();
@@ -169,6 +170,8 @@ class ImageWidget : public Fl_Widget {
         void setMirrorHorizontal (bool value);
         void setMirrorVertical (bool value);
         void setCellSize (int size);
+        void setPreviewBox (Fl_Box *box);
+        
         
         int getCellSize() const;
         Color getCurrentColor() const;
@@ -190,6 +193,10 @@ class ImageWidget : public Fl_Widget {
 
 void ImageWidget::setCurrentColor (const Color& c) {
     currentColor = c;
+    if (previewBox) {
+        previewBox->color(fl_rgb_color(c.r, c.g, c.b));
+        previewBox->redraw();
+    }
 }
 
 void ImageWidget::setShowGrid (bool value) {
@@ -203,6 +210,10 @@ void ImageWidget::setMirrorHorizontal (bool value) {
 
 void ImageWidget::setMirrorVertical (bool value) {
     mirrorVertical = value;
+}
+
+void ImageWidget::setPreviewBox(Fl_Box *box) {
+    previewBox = box;
 }
 
 void ImageWidget::undo() {
@@ -306,6 +317,19 @@ void ImageWidget::draw () {
     }
 }
 
+void ImageWidget::pickColorAtMouse(int mouseX, int mouseY) {
+    int gridX = (mouseX - x()) / cellSize;
+    int gridY = (mouseY - y()) / cellSize;
+    
+    if (gridX >= 0 && gridX < image->getWidth() &&
+        gridY >= 0 && gridY < image->getHeight()) {
+
+        Color c = image->getPixel(gridX, gridY);
+        setCurrentColor(c);
+    }
+    
+}
+
 void ImageWidget::drawAtMouse(int mouseX, int mouseY) {
     int gridX = (mouseX - x()) / cellSize;
     int gridY = (mouseY - y()) / cellSize;
@@ -364,6 +388,12 @@ void ImageWidget::drawAtMouse(int mouseX, int mouseY) {
 int ImageWidget::handle (int event) {
     switch (event) {
         case FL_PUSH: {
+            
+            if (Fl::event_alt()) {
+                pickColorAtMouse(Fl::event_x(), Fl::event_y());
+                return 1;
+            }
+            
             
             undoStack.push_back(*image);
             
@@ -437,8 +467,6 @@ void chooseColor (Fl_Widget *w, void *data) {
         
         ui->widget->setCurrentColor(c);
         
-        ui->preview->color (fl_rgb_color(c.r, c.g, c.b));
-        ui->preview->redraw();
     }
     
 }
@@ -496,8 +524,6 @@ void OnVerticalMirror (Fl_Widget *w, void *data) {
 void Oneraser (Fl_Widget *w, void *data) {
     uiData *ui = (uiData*)data;
     ui->widget->setCurrentColor({255, 255, 255});
-    ui->preview->color(fl_rgb_color(255, 255, 255));
-    ui->preview->redraw();
 }
 
 void OnPickColor (Fl_Widget *w, void *data) {
@@ -512,12 +538,7 @@ void OnPickColor (Fl_Widget *w, void *data) {
     c = convertColor(_c);
     
     ui->widget->setCurrentColor(c);
-        
-    ui->preview->color (fl_rgb_color (c.r, c.g, c.b));
-    ui->preview->redraw();
-    
-    
-    
+
 }
 
 void OnClear (Fl_Widget *w, void *data) {
@@ -614,6 +635,7 @@ int main (int argc, char ** argv) {
                                        img->getWidth() * 20,
                                        img->getHeight() * 20,
                                        img);
+    widget->setPreviewBox(preview);
     
     scroll->end();
     
