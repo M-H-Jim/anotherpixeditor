@@ -408,6 +408,12 @@ int ImageWidget::handle (int event) {
             return 1;
         }
         case FL_DRAG: {
+            
+            if (Fl::event_alt()) {
+                pickColorAtMouse(Fl::event_x(), Fl::event_y());
+                return 1;
+            }
+            
             drawAtMouse(Fl::event_x(), Fl::event_y());
             return 1;
         }
