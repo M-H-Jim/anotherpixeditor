@@ -1,4 +1,5 @@
 #include <vector>
+#include <cmath>
 #include <iostream>
 #include <fstream>
 
@@ -129,6 +130,15 @@ int Image::getHeight() const {
 
 
 class ImageWidget : public Fl_Widget {
+    
+    public:
+        enum Tool {
+            TOOL_PEN,
+            TOOL_LINE,
+            TOOL_CIRCLE
+        };
+    
+    
     private:
         Image *image;
         int cellSize;
@@ -142,6 +152,20 @@ class ImageWidget : public Fl_Widget {
         std::vector<Image> undoStack;
         std::vector<Image> redoStack;
         
+        
+
+        
+        Tool currentTool;
+        int startX;
+        int startY;
+        int endX;
+        int endY;
+        int previewX;
+        int previewY;
+        bool isDrawingShape;
+        
+        
+        
     public:
         ImageWidget (int x, int y, int w, int h, Image *img) :
             Fl_Widget (x, y, w, h), image (img), cellSize(20) 
@@ -152,16 +176,25 @@ class ImageWidget : public Fl_Widget {
                 mirrorVertical = false;
                 updateSize();
                 box(FL_BORDER_BOX);       // experimental
+                currentTool = TOOL_PEN;
+                startX = startY = 0;
+                endX = endY = 0;
+                previewX = previewY = 0;
+                isDrawingShape = false;
             }
         
         //----------------------------------------
         void draw () override;
         int handle (int event) override;
         void drawAtMouse (int mouseX, int mouseY);
+        void drawPixelCell (int gx, int gy);
         void pickColorAtMouse(int mouseX, int mouseY);
         void updateSize ();
         void undo();
         void redo();
+        
+        
+        void drawLinePixels (int x0, int y0, int x1, int y1);
         
         
         
@@ -170,6 +203,7 @@ class ImageWidget : public Fl_Widget {
         void setMirrorHorizontal (bool value);
         void setMirrorVertical (bool value);
         void setCellSize (int size);
+        void setCurrentTool (Tool t);
         void setPreviewBox (Fl_Box *box);
         
         
@@ -215,6 +249,11 @@ void ImageWidget::setMirrorVertical (bool value) {
 void ImageWidget::setPreviewBox(Fl_Box *box) {
     previewBox = box;
 }
+
+void ImageWidget::setCurrentTool(Tool t) {
+    currentTool = t;
+}
+
 
 void ImageWidget::undo() {
     if (undoStack.empty()) {
@@ -315,7 +354,114 @@ void ImageWidget::draw () {
             }
         }
     }
+    
+    
+    if (isDrawingShape && currentTool == TOOL_LINE) {
+        fl_color (currentColor.r, currentColor.g, currentColor.b);
+        
+        
+        int x0 = (startX - x()) / cellSize;
+        int y0 = (startY - y()) / cellSize;
+
+        int x1 = (previewX - x()) / cellSize;
+        int y1 = (previewY - y()) / cellSize;
+        
+        
+        
+        int dx = std::abs(x1 - x0);
+        int dy = std::abs(y1 - y0);
+        
+        int sx = (x0 < x1) ? 1 : -1;
+        int sy = (y0 < y1) ? 1 : -1;
+        
+        int err = dx - dy;
+        
+        while(true) {
+            drawPixelCell(x0, y0);
+            
+            if (x0 == x1 && y0 == y1) {
+                break;
+            }
+            
+            int e2 = 2 * err;
+            
+            if (e2 > -dy) {
+                err -= dy;
+                x0 += sx;
+            }
+            
+            if (e2 < dx) {
+                err += dx;
+                y0 += sy;
+            }
+            
+        }
+        
+        
+        
+        
+        
+        
+    }
 }
+
+void ImageWidget::drawPixelCell(int gx, int gy) {
+    fl_color (currentColor.r, currentColor.g, currentColor.b);
+    fl_rectf(
+        x() + gx * cellSize,
+        y() + gy * cellSize,
+        cellSize,
+        cellSize
+    );
+    
+    if (showGrid) {
+        fl_color(200, 200, 200);
+        fl_rect(
+            x() + gx * cellSize,
+            y() + gy * cellSize,
+            cellSize,
+            cellSize
+        );
+    }
+}
+
+void ImageWidget::drawLinePixels(int x0, int y0, int x1, int y1) {
+    int dx = std::abs(x1 - x0);
+    int dy = std::abs(y1 - y0);
+    
+    int sx = (x0 < x1) ? 1 : -1;
+    int sy = (y0 < y1) ? 1 : -1;
+    
+    int err = dx - dy;
+    
+    while(true) {
+        if (x0 >= 0 && x0 < image->getWidth() &&
+            y0 >= 0 && y0 < image->getHeight()) 
+            {
+                image->setPixel(x0, y0, currentColor);
+            }
+        
+        if (x0 == x1 && y0 == y1) {
+            break;
+        }
+        
+        int e2 = 2 * err;
+        
+        if (e2 > -dy) {
+            err -= dy;
+            x0 += sx;
+        }
+        if (e2 < dx) {
+            err += dx;
+            y0 += sy;
+        }
+    }
+}
+
+
+
+
+
 
 void ImageWidget::pickColorAtMouse(int mouseX, int mouseY) {
     int gridX = (mouseX - x()) / cellSize;
@@ -394,6 +540,14 @@ int ImageWidget::handle (int event) {
                 return 1;
             }
             
+            if (currentTool != TOOL_PEN) {
+                startX = Fl::event_x();
+                startY = Fl::event_y();
+                isDrawingShape = true;
+                return 1;
+            }
+            
+            
             
             undoStack.push_back(*image);
             
@@ -414,10 +568,44 @@ int ImageWidget::handle (int event) {
                 return 1;
             }
             
+            if (isDrawingShape && currentTool != TOOL_PEN) {
+                previewX = Fl::event_x();
+                previewY = Fl::event_y();
+                
+                redraw();
+                return 1;
+            }
+            
+            
+            
+            
             drawAtMouse(Fl::event_x(), Fl::event_y());
             return 1;
         }
-
+        case FL_RELEASE: {
+            if (isDrawingShape && currentTool == TOOL_LINE) {
+                endX = Fl::event_x();
+                endY = Fl::event_y();
+                
+                int x0 = (startX - x()) / cellSize;
+                int y0 = (startY - y()) / cellSize;
+                
+                int x1 = (endX - x()) / cellSize;
+                int y1 = (endY - y()) / cellSize;
+                
+                undoStack.push_back(*image);
+                redoStack.clear();
+                
+                drawLinePixels(x0, y0, x1, y1);
+                
+                redraw();
+                
+            }
+            isDrawingShape = false;
+            return 1;
+        }
+        
+        
         case FL_MOUSEWHEEL: {
             int dy = Fl::event_dy();
             if (dy < 0) {
@@ -526,6 +714,27 @@ void OnVerticalMirror (Fl_Widget *w, void *data) {
 }
 
 
+void OnToolSelect (Fl_Widget *w, void *data) {
+    ImageWidget *widget = (ImageWidget *)data;
+    Fl_Light_Button *btn = (Fl_Light_Button *)w;
+    
+    if (!btn->value()) {
+        return;
+    }
+    
+    if (btn->label() == std::string("Pen")) {
+        widget->setCurrentTool(ImageWidget::TOOL_PEN);
+    }
+    else if (btn->label() == std::string("Line")) {
+        widget->setCurrentTool(ImageWidget::TOOL_LINE);
+    }
+    else if (btn->label() == std::string("Circle")) {
+        widget->setCurrentTool(ImageWidget::TOOL_CIRCLE);
+    }
+}
+
+
+
 
 void Oneraser (Fl_Widget *w, void *data) {
     uiData *ui = (uiData*)data;
@@ -598,7 +807,7 @@ int main (int argc, char ** argv) {
     Fl_Menu_Bar *menubar = new Fl_Menu_Bar(0, 0, 1200, 30);
     
     
-    Image *img = new Image(16, 16);
+    Image *img = new Image(32, 32);
     
     
     
@@ -620,6 +829,20 @@ int main (int argc, char ** argv) {
     
     Fl_Button *pickColor = new Fl_Button (10, 150, 100, 30, "pick color"); 
     
+    
+    
+    
+    
+    
+    Fl_Light_Button *penTool    = new Fl_Light_Button(10, 190, 100, 30, "Pen");
+    Fl_Light_Button *lineTool   = new Fl_Light_Button(10, 230, 100, 30, "Line");
+    Fl_Light_Button *circleTool = new Fl_Light_Button(10, 270, 100, 30, "Circle");
+    
+    penTool->type(FL_RADIO_BUTTON);
+    lineTool->type(FL_RADIO_BUTTON);
+    circleTool->type(FL_RADIO_BUTTON);
+    
+    penTool->setonly();
     
     //----------------------------------------------------------------------------------------------
     leftPanel->end();
@@ -652,6 +875,10 @@ int main (int argc, char ** argv) {
     eraser->callback(Oneraser, ui);
     pickColor->callback(OnPickColor, ui);
     
+    
+    penTool->callback(OnToolSelect, widget);
+    lineTool->callback(OnToolSelect, widget);
+    circleTool->callback(OnToolSelect, widget);
     
     
     
