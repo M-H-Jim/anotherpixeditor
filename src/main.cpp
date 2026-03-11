@@ -379,6 +379,32 @@ void ImageWidget::draw () {
         while(true) {
             drawPixelCell(x0, y0);
             
+            
+
+            if (mirrorHorizontal) {
+                int mirror_x = image->getWidth() - 1 - x0;
+                drawPixelCell(mirror_x, y0);
+            }
+
+            if (mirrorVertical) {
+                int mirror_y = image->getHeight() - 1 - y0;
+                drawPixelCell(x0, mirror_y);
+            }
+
+            if (mirrorHorizontal && mirrorVertical) {
+                int mirror_x = image->getWidth() - 1 - x0;
+                int mirror_y = image->getHeight() - 1 - y0;
+                drawPixelCell(mirror_x, mirror_y);
+            }
+            
+            
+            
+            
+            
+            
+            
+            
+            
             if (x0 == x1 && y0 == y1) {
                 break;
             }
@@ -439,6 +465,41 @@ void ImageWidget::drawLinePixels(int x0, int y0, int x1, int y1) {
             y0 >= 0 && y0 < image->getHeight()) 
             {
                 image->setPixel(x0, y0, currentColor);
+                
+                
+                
+                if (mirrorHorizontal) {
+                    int mirror_x = image->getWidth() - 1 - x0;
+                    image->setPixel(mirror_x, y0, currentColor);
+                    
+                    int px = x() + mirror_x * cellSize;
+                    int py = y() + y0 * cellSize;
+                    
+                    damage(FL_DAMAGE_USER1, px, py, cellSize, cellSize);
+                    
+                }
+                if (mirrorVertical) {
+                    int mirror_y = image->getHeight() - 1 - y0;
+                    image->setPixel(x0, mirror_y, currentColor);
+                    
+                    int px = x() + x0 * cellSize;
+                    int py = y() + mirror_y * cellSize;
+                    
+                    damage(FL_DAMAGE_USER1, px, py, cellSize, cellSize);
+                    
+                }
+                if (mirrorHorizontal && mirrorVertical) {
+                    int mirror_x = image->getWidth() - 1 - x0;
+                    int mirror_y = image->getHeight() - 1 - y0;
+                    
+                    image->setPixel(mirror_x, mirror_y, currentColor);
+                    
+                    int px = x() + mirror_x * cellSize;
+                    int py = y() + mirror_y * cellSize;
+                    
+                    damage(FL_DAMAGE_USER1, px, py, cellSize, cellSize);
+                }
+                
             }
         
         if (x0 == x1 && y0 == y1) {
@@ -541,8 +602,11 @@ int ImageWidget::handle (int event) {
             }
             
             if (currentTool != TOOL_PEN) {
-                startX = Fl::event_x();
-                startY = Fl::event_y();
+                previewX = startX = Fl::event_x();
+                previewY = startY = Fl::event_y();
+                
+                
+                
                 isDrawingShape = true;
                 return 1;
             }
