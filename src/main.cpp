@@ -437,6 +437,35 @@ void ImageWidget::draw () {
         while (x0 <= y0) {
             drawCirclePoints(cx, cy, x0, y0);
             
+            
+            
+            if (mirrorHorizontal) {
+                int mirror_x = image->getWidth() - 1 - cx;
+                drawCirclePoints(mirror_x, cy, x0, y0);
+            }
+
+            if (mirrorVertical) {
+                int mirror_y = image->getHeight() - 1 - cy;
+                drawCirclePoints(cx, mirror_y, x0, y0);
+            }
+
+            if (mirrorHorizontal && mirrorVertical) {
+                int mirror_x = image->getWidth() - 1 - cx;
+                int mirror_y = image->getHeight() - 1 - cy;
+                drawCirclePoints(mirror_x, mirror_y, x0, y0);
+            }
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
             if (d < 0) {
                 d += 2 * x0 + 3;
             }
@@ -568,16 +597,70 @@ void ImageWidget::drawCirclePoints(int cx, int cy, int x, int y) {
 }
 
 void ImageWidget::safeSetPixel (int x, int y) {
-    if (x < 0 || y < 0) {
-        return;
+    
+    int w = image->getWidth();
+    int h = image->getHeight();
+    
+    if (x >= 0 && x < w && y >= 0 && y < h) {
+        image->setPixel (x, y, currentColor);
     }
-    if (x >= image->getWidth()) {
-        return;
+    
+    
+    int px = this->x() + x * cellSize;
+    int py = this->y() + y * cellSize;
+
+    damage(FL_DAMAGE_USER1, px, py, cellSize, cellSize);
+    
+    
+    
+    
+    
+    if (mirrorHorizontal) {
+        int mirror_x = w - 1 - x;
+        if (mirror_x >= 0 && mirror_x < w && y >= 0 && y < h) {
+            image->setPixel(mirror_x, y, currentColor);
+        }
+        
+        int px = this->x() + mirror_x * cellSize;
+        int py = this->y() + y * cellSize;
+        
+        damage(FL_DAMAGE_USER1, px, py, cellSize, cellSize);
+        
     }
-    if (y >= image->getHeight()) {
-        return;
+    if (mirrorVertical) {
+        int mirror_y = h - 1 - y;
+        if (x >= 0 && x < w && mirror_y >= 0 && mirror_y < h) {
+            image->setPixel(x, mirror_y, currentColor);
+        }
+        
+        int px = this->x() + x * cellSize;
+        int py = this->y() + mirror_y * cellSize;
+        
+        damage(FL_DAMAGE_USER1, px, py, cellSize, cellSize);
+        
     }
-    image->setPixel (x, y, currentColor);
+    if (mirrorHorizontal && mirrorVertical) {
+        int mirror_x = w - 1 - x;
+        int mirror_y = h - 1 - y;
+        
+        if (mirror_x >= 0 && mirror_x < w && mirror_y >= 0 && mirror_y < h) {
+            image->setPixel(mirror_x, mirror_y, currentColor);
+        }
+        
+        
+        int px = this->x() + mirror_x * cellSize;
+        int py = this->y() + mirror_y * cellSize;
+        
+        damage(FL_DAMAGE_USER1, px, py, cellSize, cellSize);
+    }
+    
+    
+    
+    
+    
+    
+    
+    
 }
 
 void ImageWidget::setCirclePixels (int cx, int cy, int x, int y) {
