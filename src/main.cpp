@@ -356,6 +356,40 @@ void ImageWidget::draw () {
         }
     }
     
+    // exprimental
+    
+    int midX = image->getWidth() / 2;
+    int midY = image->getHeight() / 2;
+    
+    fl_color (200, 0, 0);
+    int thickness = 3;
+
+    if (mirrorHorizontal) {
+        fl_rectf(x() + midX * cellSize - thickness/2, 
+                 y(),
+                 thickness, 
+                 image->getHeight() * cellSize
+        );
+    }
+
+    if (mirrorVertical) {
+        fl_rectf(x(), 
+                 y() + midY * cellSize - thickness/2,
+                 image->getWidth() * cellSize, 
+                 thickness
+        );
+    }
+        
+    
+    
+    
+    
+    // ~exprimental
+    
+    
+    
+    
+    
     
     if (isDrawingShape && currentTool == TOOL_LINE) {
         fl_color (currentColor.r, currentColor.g, currentColor.b);
@@ -952,7 +986,7 @@ void OnHorizontalMirror (Fl_Widget *w, void *data) {
     
     const Fl_Menu_Item* gridItem = menubar->find_item("Edit/Horizontal Mirror");
     widget->setMirrorHorizontal(gridItem->value());
-    
+    widget->redraw();
 }
 void OnVerticalMirror (Fl_Widget *w, void *data) {
     ImageWidget* widget = (ImageWidget*)data;
@@ -960,7 +994,7 @@ void OnVerticalMirror (Fl_Widget *w, void *data) {
     
     const Fl_Menu_Item* gridItem = menubar->find_item("Edit/Vertical Mirror");
     widget->setMirrorVertical(gridItem->value());
-    
+    widget->redraw();
 }
 
 
