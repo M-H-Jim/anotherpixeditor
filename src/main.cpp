@@ -197,7 +197,7 @@ class ImageWidget : public Fl_Widget {
         void drawCirclePoints (int cx, int cy, int x, int y);
         void setLinePixels (int x0, int y0, int x1, int y1);
         void setCirclePixels (int cx, int cy, int x, int y);
-        void safeSetPixels (int x, int y);
+        void safeSetPixel (int x, int y);
         void drawCirclePixels (int cx, int cy, int r);
         
         
@@ -453,6 +453,21 @@ void ImageWidget::draw () {
 }
 
 void ImageWidget::drawPixelCell(int gx, int gy) {
+    
+    if (gx < 0 || gy < 0) {
+        return;
+    }
+    if (gx >= image->getWidth()) {
+        return;
+    }
+    if (gy >= image->getHeight()) {
+        return;
+    }
+    
+    
+    
+    
+    
     fl_color (currentColor.r, currentColor.g, currentColor.b);
     fl_rectf(
         x() + gx * cellSize,
@@ -552,17 +567,29 @@ void ImageWidget::drawCirclePoints(int cx, int cy, int x, int y) {
     drawPixelCell(cx - y, cy - x);
 }
 
+void ImageWidget::safeSetPixel (int x, int y) {
+    if (x < 0 || y < 0) {
+        return;
+    }
+    if (x >= image->getWidth()) {
+        return;
+    }
+    if (y >= image->getHeight()) {
+        return;
+    }
+    image->setPixel (x, y, currentColor);
+}
 
 void ImageWidget::setCirclePixels (int cx, int cy, int x, int y) {
-    image->setPixel(cx + x, cy + y, currentColor);
-    image->setPixel(cx - x, cy + y, currentColor);
-    image->setPixel(cx + x, cy - y, currentColor);
-    image->setPixel(cx - x, cy - y, currentColor);
+    safeSetPixel(cx + x, cy + y);
+    safeSetPixel(cx - x, cy + y);
+    safeSetPixel(cx + x, cy - y);
+    safeSetPixel(cx - x, cy - y);
 
-    image->setPixel(cx + y, cy + x, currentColor);
-    image->setPixel(cx - y, cy + x, currentColor);
-    image->setPixel(cx + y, cy - x, currentColor);
-    image->setPixel(cx - y, cy - x, currentColor);
+    safeSetPixel(cx + y, cy + x);
+    safeSetPixel(cx - y, cy + x);
+    safeSetPixel(cx + y, cy - x);
+    safeSetPixel(cx - y, cy - x);
 }
 
 
