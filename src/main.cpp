@@ -194,7 +194,11 @@ class ImageWidget : public Fl_Widget {
         void redo();
         
         
-        void drawLinePixels (int x0, int y0, int x1, int y1);
+        void drawCirclePoints (int cx, int cy, int x, int y);
+        void setLinePixels (int x0, int y0, int x1, int y1);
+        void setCirclePixels (int cx, int cy, int x, int y);
+        void safeSetPixels (int x, int y);
+        void drawCirclePixels (int cx, int cy, int r);
         
         
         
@@ -212,9 +216,6 @@ class ImageWidget : public Fl_Widget {
         Image* getImage();
         
         //----------------------------------------
-        
-        
-        
 
 };
 
@@ -398,13 +399,6 @@ void ImageWidget::draw () {
             }
             
             
-            
-            
-            
-            
-            
-            
-            
             if (x0 == x1 && y0 == y1) {
                 break;
             }
@@ -422,13 +416,40 @@ void ImageWidget::draw () {
             }
             
         }
+    }
+    
+    if (isDrawingShape && currentTool == TOOL_CIRCLE) {
+        int cx = (startX - x()) / cellSize;
+        int cy = (startY - y()) / cellSize;
+        
+        int px = (previewX - x()) / cellSize;
+        int py = (previewY - y()) / cellSize;
+        
+        int r = std::sqrt(std::pow(px - cx, 2) + std::pow(py - cy, 2));
         
         
+        fl_color(currentColor.r, currentColor.g, currentColor.b);
         
+        int x0 = 0;
+        int y0 = r;
+        int d = 1 - r;
         
-        
+        while (x0 <= y0) {
+            drawCirclePoints(cx, cy, x0, y0);
+            
+            if (d < 0) {
+                d += 2 * x0 + 3;
+            }
+            else {
+                d += 2 * (x0 - y0) + 5;
+                y0--;
+            }
+            x0++;
+        }
         
     }
+    
+    
 }
 
 void ImageWidget::drawPixelCell(int gx, int gy) {
@@ -451,7 +472,7 @@ void ImageWidget::drawPixelCell(int gx, int gy) {
     }
 }
 
-void ImageWidget::drawLinePixels(int x0, int y0, int x1, int y1) {
+void ImageWidget::setLinePixels(int x0, int y0, int x1, int y1) {
     int dx = std::abs(x1 - x0);
     int dy = std::abs(y1 - y0);
     
@@ -519,10 +540,51 @@ void ImageWidget::drawLinePixels(int x0, int y0, int x1, int y1) {
     }
 }
 
+void ImageWidget::drawCirclePoints(int cx, int cy, int x, int y) {
+    drawPixelCell(cx + x, cy + y);
+    drawPixelCell(cx - x, cy + y);
+    drawPixelCell(cx + x, cy - y);
+    drawPixelCell(cx - x, cy - y);
+    
+    drawPixelCell(cx + y, cy + x);
+    drawPixelCell(cx - y, cy + x);
+    drawPixelCell(cx + y, cy - x);
+    drawPixelCell(cx - y, cy - x);
+}
+
+
+void ImageWidget::setCirclePixels (int cx, int cy, int x, int y) {
+    image->setPixel(cx + x, cy + y, currentColor);
+    image->setPixel(cx - x, cy + y, currentColor);
+    image->setPixel(cx + x, cy - y, currentColor);
+    image->setPixel(cx - x, cy - y, currentColor);
+
+    image->setPixel(cx + y, cy + x, currentColor);
+    image->setPixel(cx - y, cy + x, currentColor);
+    image->setPixel(cx + y, cy - x, currentColor);
+    image->setPixel(cx - y, cy - x, currentColor);
+}
 
 
 
-
+void ImageWidget::drawCirclePixels (int cx, int cy, int r) {
+    int x0 = 0;
+    int y0 = r;
+    int d = 1 - r;
+    
+    while (x0 <= y0) {
+        setCirclePixels (cx, cy, x0, y0);
+        
+        if (d < 0) {
+            d += 2 * x0 + 3;
+        }
+        else {
+            d += 2 * (x0 - y0) + 5;
+            y0--;
+        }
+        x0++;
+    }
+}
 
 void ImageWidget::pickColorAtMouse(int mouseX, int mouseY) {
     int gridX = (mouseX - x()) / cellSize;
@@ -660,10 +722,24 @@ int ImageWidget::handle (int event) {
                 undoStack.push_back(*image);
                 redoStack.clear();
                 
-                drawLinePixels(x0, y0, x1, y1);
+                setLinePixels(x0, y0, x1, y1);
                 
                 redraw();
                 
+            }
+            else if (isDrawingShape && currentTool == TOOL_CIRCLE) {
+                int cx = (startX - x()) / cellSize;
+                int cy = (startY - y()) / cellSize;
+
+                int px = (Fl::event_x() - x()) / cellSize;
+                int py = (Fl::event_y() - y()) / cellSize;
+
+                int r = std::sqrt(std::pow(px - cx, 2) + std::pow(py - cy, 2));
+
+                undoStack.push_back(*image);
+                redoStack.clear();
+
+                drawCirclePixels(cx, cy, r);
             }
             isDrawingShape = false;
             return 1;
