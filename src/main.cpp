@@ -18,7 +18,7 @@
 #include <Fl/Fl_Scroll.H>
 #include <FL/fl_show_colormap.H>
 #include <FL/fl_ask.H>
-
+#include <FL/Fl_Double_Window.H>
 
 const int MAX_UNDO = 50;
 
@@ -1079,7 +1079,7 @@ int main (int argc, char ** argv) {
     float g = 0.5f;
     float b = 0.5f;
     
-    Fl_Window *window = new Fl_Window(1200, 800, "AnotherPixEditor");
+    Fl_Double_Window *window = new Fl_Double_Window(1200, 800, "AnotherPixEditor");
     window->color(fl_rgb_color(
         (int)(r * 255),
         (int)(g * 255),
