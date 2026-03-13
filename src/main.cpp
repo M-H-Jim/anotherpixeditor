@@ -200,7 +200,8 @@ class ImageWidget : public Fl_Widget {
         void safeSetPixel (int x, int y);
         void drawCirclePixels (int cx, int cy, int r);
         
-        
+        void flipHorizontal();
+        void flipVertical();
         
         void setCurrentColor (const Color& c);
         void setShowGrid (bool value);
@@ -293,9 +294,38 @@ void ImageWidget::updateSize () {
 }
 
 
+void ImageWidget::flipHorizontal() {
+    int w = image->getWidth();
+    int h = image->getHeight();
+    
+    for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w / 2; x++) {
+            Color left = image->getPixel(x, y);
+            Color right = image->getPixel(w - x - 1, y);
+            
+            image->setPixel(x, y, right);
+            image->setPixel(w - x - 1, y , left);
+        }
+    }
+    redraw();
+}
 
+void ImageWidget::flipVertical() {
+    int w = image->getWidth();
+    int h = image->getHeight();
+    
+    for (int y = 0; y < h / 2; y++) {
+        for (int x = 0; x < w; x++) {
+            Color top = image->getPixel(x, y);
+            Color bottom = image->getPixel(x, h - y - 1);
+            
+            image->setPixel(x, y, bottom);
+            image->setPixel(x, h - y - 1, top);
 
-
+        }
+    }
+    redraw();
+}
 
 
 void ImageWidget::setCellSize(int size) {
@@ -997,6 +1027,16 @@ void OnVerticalMirror (Fl_Widget *w, void *data) {
     widget->redraw();
 }
 
+void OnFlipHorizontal (Fl_Widget *w, void *data) {
+    ImageWidget *widget = (ImageWidget *)data;
+    widget->flipHorizontal();
+}
+
+void OnFlipVertical (Fl_Widget *w, void *data) {
+    ImageWidget *widget = (ImageWidget *)data;
+    widget->flipVertical();
+}
+
 
 void OnToolSelect (Fl_Widget *w, void *data) {
     ImageWidget *widget = (ImageWidget *)data;
@@ -1171,6 +1211,8 @@ int main (int argc, char ** argv) {
     
     menubar->add("Edit/Undo", FL_CTRL + 'z', OnUndo, widget);
     menubar->add("Edit/Redo", FL_CTRL + 'y', OnRedo, widget);
+    menubar->add("Edit/Flip Horizontally", 0, OnFlipHorizontal, widget);
+    menubar->add("Edit/Flip Vertically", 0, OnFlipVertical, widget);
     menubar->add("Edit/Show Grid", 'g', OnGridToggle, widget, FL_MENU_TOGGLE);
     menubar->add("Edit/Horizontal Mirror", FL_CTRL + FL_SHIFT + 'h', OnHorizontalMirror, widget, FL_MENU_TOGGLE);
     menubar->add("Edit/Vertical Mirror", FL_CTRL + FL_SHIFT + 'v', OnVerticalMirror, widget, FL_MENU_TOGGLE);
