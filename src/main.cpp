@@ -1,5 +1,6 @@
 #include <vector>
 #include <cmath>
+#include <queue>
 #include <iostream>
 #include <fstream>
 
@@ -26,9 +27,14 @@ const int MAX_UNDO = 50;
 
 
 struct Color {
-    unsigned char r;
-    unsigned char g;
-    unsigned char b;
+    int r;
+    int g;
+    int b;
+    
+    bool operator ==(const Color& other) const {
+        return r == other.r && g == other.g && b == other.b;
+    }
+    
 };  // This structure represents the pixels colors
 
 Color convertColor (Fl_Color c) {
@@ -132,7 +138,8 @@ class ImageWidget : public Fl_Widget {
         enum Tool {
             TOOL_PEN,
             TOOL_LINE,
-            TOOL_CIRCLE
+            TOOL_CIRCLE,
+            TOOL_BUCKET
         };
     
     
@@ -191,11 +198,14 @@ class ImageWidget : public Fl_Widget {
         void redo();
         
         
-        void drawCirclePoints (int cx, int cy, int x, int y);
         void setLinePixels (int x0, int y0, int x1, int y1);
+        void drawCirclePoints (int cx, int cy, int x, int y);
         void set8CirclePixels (int cx, int cy, int x, int y);
         void safeSetPixel (int x, int y);
         void setCirclePixels (int cx, int cy, int r);
+        
+        void floodFill (int x, int y);
+        
         
         void flipHorizontal();
         void flipVertical();
@@ -546,7 +556,7 @@ void ImageWidget::drawPixelCell(int gx, int gy) {
     }
 }       
 
-// This function actually sets the pixels in the vector
+// This function actually sets the pixels for the line in the vector
 void ImageWidget::setLinePixels(int x0, int y0, int x1, int y1) {
     int dx = std::abs(x1 - x0);
     int dy = std::abs(y1 - y0);
@@ -693,7 +703,7 @@ void ImageWidget::set8CirclePixels (int cx, int cy, int x, int y) {
 }
 
 
-
+// This function actually sets the pixels for the circle in the vector
 void ImageWidget::setCirclePixels (int cx, int cy, int r) {
     int x0 = 0;
     int y0 = r;
@@ -781,6 +791,53 @@ void ImageWidget::drawAtMouse(int mouseX, int mouseY) {
 }
 
 
+void ImageWidget::floodFill(int startX, int startY) {
+    Color target = image->getPixel (startX, startY);
+    if (target == currentColor) {
+        return;
+    }
+    
+    std::queue<std::pair<int, int>> q;
+    q.push({startX, startY});
+    
+    while (!q.empty()) {
+        auto p = q.front();
+        q.pop();
+        
+        int x = p.first;
+        int y = p.second;
+        
+        if (x < 0 || y < 0) {
+            continue;
+        }
+        if (x >= image->getWidth()) {
+            continue;
+        }
+        if (y >= image->getHeight()) {
+            continue;
+        }
+
+        if (!(image->getPixel(x, y) == target)) {
+            continue;
+        }
+        
+        image->setPixel(x, y, currentColor);
+        
+        q.push({x + 1, y});
+        q.push({x - 1, y});
+        q.push({x, y + 1});
+        q.push({x, y - 1});
+    }
+}
+
+
+
+
+
+
+
+
+
 int ImageWidget::handle (int event) {
     switch (event) {
         case FL_PUSH: {
@@ -797,6 +854,7 @@ int ImageWidget::handle (int event) {
                 return 1;
             }
             
+            
             undoStack.push_back(*image);
             
             if (undoStack.size() > MAX_UNDO) {
@@ -804,7 +862,7 @@ int ImageWidget::handle (int event) {
             }
             
             redoStack.clear();
-            
+
             drawAtMouse(Fl::event_x(), Fl::event_y());
             
             return 1;
@@ -846,7 +904,7 @@ int ImageWidget::handle (int event) {
                 
                 setLinePixels(x0, y0, x1, y1);
                 
-                redraw();
+//                redraw();
                 
             }
             else if (isDrawingShape && currentTool == TOOL_CIRCLE) {
@@ -862,6 +920,17 @@ int ImageWidget::handle (int event) {
                 redoStack.clear();
 
                 setCirclePixels(cx, cy, r);
+            }
+            else if (isDrawingShape && currentTool == TOOL_BUCKET) {
+                int px = (Fl::event_x() - x()) / cellSize;
+                int py = (Fl::event_y() - y()) / cellSize;
+                
+                
+                undoStack.push_back(*image);
+                redoStack.clear();
+                
+                floodFill(px, py);
+                redraw();
             }
             isDrawingShape = false;
             return 1;
@@ -885,9 +954,6 @@ int ImageWidget::handle (int event) {
 Image* ImageWidget::getImage() {
     return image;
 }
-
-
-
 
 
 struct uiData {
@@ -990,6 +1056,9 @@ void OnToolSelect (Fl_Widget *w, void *data) {
     }
     else if (btn->label() == std::string("Circle")) {
         widget->setCurrentTool(ImageWidget::TOOL_CIRCLE);
+    }
+    else if (btn->label() == std::string("Bucket")) {
+        widget->setCurrentTool(ImageWidget::TOOL_BUCKET);
     }
 }
 
@@ -1097,10 +1166,12 @@ int main (int argc, char ** argv) {
     Fl_Light_Button *penTool    = new Fl_Light_Button(10, 190, 100, 30, "Pen");
     Fl_Light_Button *lineTool   = new Fl_Light_Button(10, 230, 100, 30, "Line");
     Fl_Light_Button *circleTool = new Fl_Light_Button(10, 270, 100, 30, "Circle");
+    Fl_Light_Button *bucketTool = new Fl_Light_Button(10, 310, 100, 30, "Bucket");
     
     penTool->type(FL_RADIO_BUTTON);
     lineTool->type(FL_RADIO_BUTTON);
     circleTool->type(FL_RADIO_BUTTON);
+    bucketTool->type(FL_RADIO_BUTTON);
     
     penTool->setonly();
     
@@ -1139,6 +1210,7 @@ int main (int argc, char ** argv) {
     penTool->callback(OnToolSelect, widget);
     lineTool->callback(OnToolSelect, widget);
     circleTool->callback(OnToolSelect, widget);
+    bucketTool->callback(OnToolSelect, widget);
     
     
     
