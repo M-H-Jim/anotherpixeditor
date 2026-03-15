@@ -26,18 +26,16 @@ const int MAX_UNDO = 50;
 
 
 struct Color {
-    int r;
-    int g;
-    int b;
-};
+    unsigned char r;
+    unsigned char g;
+    unsigned char b;
+};  // This structure represents the pixels colors
 
 Color convertColor (Fl_Color c) {
     unsigned char r, g, b;
     Fl::get_color(c, r, g, b);
-    
     return {r, g, b};
 }
-
 
 
 class Image {
@@ -60,13 +58,12 @@ class Image {
 Image::Image (int w, int h) : width(w), height(h) {
     pixels.resize(width * height, {255, 255, 255});
 }
+
 Image::Image (const Image& rval) {
     width = rval.width;
     height = rval.height;
     pixels = rval.pixels;
 }
-
-
 
 void Image::setPixel (int x, int y, const Color& color) {
     pixels[y * width + x] = color;
@@ -170,7 +167,7 @@ class ImageWidget : public Fl_Widget {
         ImageWidget (int x, int y, int w, int h, Image *img) :
             Fl_Widget (x, y, w, h), image (img), cellSize(20) 
             {
-                currentColor = {0, 0, 0}; // white
+                currentColor = {0, 0, 0}; // Black
                 showGrid = false;
                 mirrorHorizontal = false;
                 mirrorVertical = false;
@@ -196,9 +193,9 @@ class ImageWidget : public Fl_Widget {
         
         void drawCirclePoints (int cx, int cy, int x, int y);
         void setLinePixels (int x0, int y0, int x1, int y1);
-        void setCirclePixels (int cx, int cy, int x, int y);
+        void set8CirclePixels (int cx, int cy, int x, int y);
         void safeSetPixel (int x, int y);
-        void drawCirclePixels (int cx, int cy, int r);
+        void setCirclePixels (int cx, int cy, int r);
         
         void flipHorizontal();
         void flipVertical();
@@ -340,7 +337,6 @@ void ImageWidget::setCellSize(int size) {
     updateSize();
     
     if(parent()) parent()->redraw();
-    
 }
 
 int ImageWidget::getCellSize() const {
@@ -385,37 +381,32 @@ void ImageWidget::draw () {
             }
         }
     }
-    
-    // exprimental
-    
-    int midX = image->getWidth() / 2;
-    int midY = image->getHeight() / 2;
-    
-    fl_color (200, 0, 0);
-    int thickness = 3;
-
-    if (mirrorHorizontal) {
-        fl_rectf(x() + midX * cellSize - thickness/2, 
-                 y(),
-                 thickness, 
-                 image->getHeight() * cellSize
-        );
-    }
-
-    if (mirrorVertical) {
-        fl_rectf(x(), 
-                 y() + midY * cellSize - thickness/2,
-                 image->getWidth() * cellSize, 
-                 thickness
-        );
-    }
+    {
+        // exprimental
+        int midX = image->getWidth() / 2;
+        int midY = image->getHeight() / 2;
         
-    
-    
-    
-    
-    // ~exprimental
-    
+        fl_color (200, 0, 0);
+        int thickness = 3;
+
+        if (mirrorHorizontal) {
+            fl_rectf(x() + midX * cellSize - thickness/2, 
+                     y(),
+                     thickness, 
+                     image->getHeight() * cellSize
+            );
+        }
+
+        if (mirrorVertical) {
+            fl_rectf(x(), 
+                     y() + midY * cellSize - thickness/2,
+                     image->getWidth() * cellSize, 
+                     thickness
+            );
+        }
+        // ~exprimental
+    }
+
     
     
     
@@ -431,8 +422,6 @@ void ImageWidget::draw () {
         int x1 = (previewX - x()) / cellSize;
         int y1 = (previewY - y()) / cellSize;
         
-        
-        
         int dx = std::abs(x1 - x0);
         int dy = std::abs(y1 - y0);
         
@@ -445,17 +434,14 @@ void ImageWidget::draw () {
             drawPixelCell(x0, y0);
             
             
-
             if (mirrorHorizontal) {
                 int mirror_x = image->getWidth() - 1 - x0;
                 drawPixelCell(mirror_x, y0);
             }
-
             if (mirrorVertical) {
                 int mirror_y = image->getHeight() - 1 - y0;
                 drawPixelCell(x0, mirror_y);
             }
-
             if (mirrorHorizontal && mirrorVertical) {
                 int mirror_x = image->getWidth() - 1 - x0;
                 int mirror_y = image->getHeight() - 1 - y0;
@@ -478,7 +464,6 @@ void ImageWidget::draw () {
                 err += dx;
                 y0 += sy;
             }
-            
         }
     }
     
@@ -500,9 +485,7 @@ void ImageWidget::draw () {
         
         while (x0 <= y0) {
             drawCirclePoints(cx, cy, x0, y0);
-            
-            
-            
+
             if (mirrorHorizontal) {
                 int mirror_x = image->getWidth() - 1 - cx;
                 drawCirclePoints(mirror_x, cy, x0, y0);
@@ -519,17 +502,6 @@ void ImageWidget::draw () {
                 drawCirclePoints(mirror_x, mirror_y, x0, y0);
             }
             
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
             if (d < 0) {
                 d += 2 * x0 + 3;
             }
@@ -539,12 +511,10 @@ void ImageWidget::draw () {
             }
             x0++;
         }
-        
     }
-    
-    
 }
 
+// This function draws cells but it doesn't store the value in the 'pixels' vector 
 void ImageWidget::drawPixelCell(int gx, int gy) {
     
     if (gx < 0 || gy < 0) {
@@ -556,10 +526,6 @@ void ImageWidget::drawPixelCell(int gx, int gy) {
     if (gy >= image->getHeight()) {
         return;
     }
-    
-    
-    
-    
     
     fl_color (currentColor.r, currentColor.g, currentColor.b);
     fl_rectf(
@@ -578,8 +544,9 @@ void ImageWidget::drawPixelCell(int gx, int gy) {
             cellSize
         );
     }
-}
+}       
 
+// This function actually sets the pixels in the vector
 void ImageWidget::setLinePixels(int x0, int y0, int x1, int y1) {
     int dx = std::abs(x1 - x0);
     int dy = std::abs(y1 - y0);
@@ -594,9 +561,7 @@ void ImageWidget::setLinePixels(int x0, int y0, int x1, int y1) {
             y0 >= 0 && y0 < image->getHeight()) 
             {
                 image->setPixel(x0, y0, currentColor);
-                
-                
-                
+
                 if (mirrorHorizontal) {
                     int mirror_x = image->getWidth() - 1 - x0;
                     image->setPixel(mirror_x, y0, currentColor);
@@ -675,10 +640,6 @@ void ImageWidget::safeSetPixel (int x, int y) {
 
     damage(FL_DAMAGE_USER1, px, py, cellSize, cellSize);
     
-    
-    
-    
-    
     if (mirrorHorizontal) {
         int mirror_x = w - 1 - x;
         if (mirror_x >= 0 && mirror_x < w && y >= 0 && y < h) {
@@ -717,17 +678,9 @@ void ImageWidget::safeSetPixel (int x, int y) {
         
         damage(FL_DAMAGE_USER1, px, py, cellSize, cellSize);
     }
-    
-    
-    
-    
-    
-    
-    
-    
 }
 
-void ImageWidget::setCirclePixels (int cx, int cy, int x, int y) {
+void ImageWidget::set8CirclePixels (int cx, int cy, int x, int y) {
     safeSetPixel(cx + x, cy + y);
     safeSetPixel(cx - x, cy + y);
     safeSetPixel(cx + x, cy - y);
@@ -741,13 +694,13 @@ void ImageWidget::setCirclePixels (int cx, int cy, int x, int y) {
 
 
 
-void ImageWidget::drawCirclePixels (int cx, int cy, int r) {
+void ImageWidget::setCirclePixels (int cx, int cy, int r) {
     int x0 = 0;
     int y0 = r;
     int d = 1 - r;
     
     while (x0 <= y0) {
-        setCirclePixels (cx, cy, x0, y0);
+        set8CirclePixels (cx, cy, x0, y0);
         
         if (d < 0) {
             d += 2 * x0 + 3;
@@ -840,14 +793,9 @@ int ImageWidget::handle (int event) {
             if (currentTool != TOOL_PEN) {
                 previewX = startX = Fl::event_x();
                 previewY = startY = Fl::event_y();
-                
-                
-                
                 isDrawingShape = true;
                 return 1;
             }
-            
-            
             
             undoStack.push_back(*image);
             
@@ -913,7 +861,7 @@ int ImageWidget::handle (int event) {
                 undoStack.push_back(*image);
                 redoStack.clear();
 
-                drawCirclePixels(cx, cy, r);
+                setCirclePixels(cx, cy, r);
             }
             isDrawingShape = false;
             return 1;
@@ -946,18 +894,6 @@ struct uiData {
     ImageWidget *widget;
     Fl_Box *preview;
 };
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 void chooseColor (Fl_Widget *w, void *data) {
