@@ -20,6 +20,8 @@
 #include <FL/fl_show_colormap.H>
 #include <FL/fl_ask.H>
 #include <FL/Fl_Double_Window.H>
+#include <FL/Fl_Value_Slider.H>
+
 
 const int MAX_UNDO = 50;
 
@@ -157,7 +159,7 @@ class ImageWidget : public Fl_Widget {
         std::vector<Image> undoStack;
         std::vector<Image> redoStack;
         
-        
+        int brushSize;
 
         
         Tool currentTool;
@@ -186,6 +188,7 @@ class ImageWidget : public Fl_Widget {
                 endX = endY = 0;
                 previewX = previewY = 0;
                 isDrawingShape = false;
+                brushSize = 2;
             }
         
         //----------------------------------------
@@ -211,6 +214,7 @@ class ImageWidget : public Fl_Widget {
         void flipHorizontal();
         void flipVertical();
         
+        void setBrushSize (int s);
         void setCurrentColor (const Color& c);
         void setShowGrid (bool value);
         void setMirrorHorizontal (bool value);
@@ -263,6 +267,11 @@ void ImageWidget::setPreviewBox(Fl_Box *box) {
 void ImageWidget::setCurrentTool(Tool t) {
     currentTool = t;
 }
+
+void ImageWidget::setBrushSize(int s) {
+    brushSize = std::max(1, s);
+}
+
 
 
 void ImageWidget::undo() {
@@ -764,59 +773,68 @@ void ImageWidget::pickColorAtMouse(int mouseX, int mouseY) {
 }
 
 void ImageWidget::drawAtMouse(int mouseX, int mouseY) {
-    int gridX = (mouseX - x()) / cellSize;
-    int gridY = (mouseY - y()) / cellSize;
+    int X = (mouseX - x()) / cellSize;
+    int Y = (mouseY - y()) / cellSize;
+    
+    int r = brushSize / 2;
+    for (int j = -r; j <= r; j++) {
+        for (int i = -r; i <= r; i++) {
             
-    if (gridX >= 0 && gridX < image->getWidth() && 
-        gridY >= 0 && gridY < image->getHeight()) {
-            
-            image->setPixel(gridX, gridY, currentColor);
-            
-            if (mirrorHorizontal) {
-                int mirror_x = image->getWidth() - 1 - gridX;
-                image->setPixel(mirror_x, gridY, currentColor);
-                
-                int px = x() + mirror_x * cellSize;
-                int py = y() + gridY * cellSize;
-                
-                damage(FL_DAMAGE_USER1, px, py, cellSize, cellSize);
-                
-            }
-            if (mirrorVertical) {
-                int mirror_y = image->getHeight() - 1 - gridY;
-                image->setPixel(gridX, mirror_y, currentColor);
-                
-                int px = x() + gridX * cellSize;
-                int py = y() + mirror_y * cellSize;
-                
-                damage(FL_DAMAGE_USER1, px, py, cellSize, cellSize);
-                
-            }
-            if (mirrorHorizontal && mirrorVertical) {
-                int mirror_x = image->getWidth() - 1 - gridX;
-                int mirror_y = image->getHeight() - 1 - gridY;
-                
-                image->setPixel(mirror_x, mirror_y, currentColor);
-                
-                int px = x() + mirror_x * cellSize;
-                int py = y() + mirror_y * cellSize;
-                
-                damage(FL_DAMAGE_USER1, px, py, cellSize, cellSize);
-            }
+            int gridX = X + i;
+            int gridY = Y + j;
             
             
             
             
-            
-            
+            if (gridX >= 0 && gridX < image->getWidth() && 
+                gridY >= 0 && gridY < image->getHeight()) {
                     
-            int px = x() + gridX * cellSize;
-            int py = y() + gridY * cellSize;
-            
-            damage(FL_DAMAGE_USER1, px, py, cellSize, cellSize);
-    }
-}
+                    image->setPixel(gridX, gridY, currentColor);
 
+                    
+                    if (mirrorHorizontal) {
+                        int mirror_x = image->getWidth() - 1 - gridX;
+                        image->setPixel(mirror_x, gridY, currentColor);
+                        
+                        int px = x() + mirror_x * cellSize;
+                        int py = y() + gridY * cellSize;
+                        
+                        damage(FL_DAMAGE_USER1, px, py, cellSize, cellSize);
+                        
+                    }
+                    if (mirrorVertical) {
+                        int mirror_y = image->getHeight() - 1 - gridY;
+                        image->setPixel(gridX, mirror_y, currentColor);
+                        
+                        int px = x() + gridX * cellSize;
+                        int py = y() + mirror_y * cellSize;
+                        
+                        damage(FL_DAMAGE_USER1, px, py, cellSize, cellSize);
+                        
+                    }
+                    if (mirrorHorizontal && mirrorVertical) {
+                        int mirror_x = image->getWidth() - 1 - gridX;
+                        int mirror_y = image->getHeight() - 1 - gridY;
+                        
+                        image->setPixel(mirror_x, mirror_y, currentColor);
+                        
+                        int px = x() + mirror_x * cellSize;
+                        int py = y() + mirror_y * cellSize;
+                        
+                        damage(FL_DAMAGE_USER1, px, py, cellSize, cellSize);
+                    }
+                         
+                    int px = x() + gridX * cellSize;
+                    int py = y() + gridY * cellSize;
+                    
+                    damage(FL_DAMAGE_USER1, px, py, cellSize, cellSize);
+            }
+            
+        }
+    }
+    
+    
+}
 
 void ImageWidget::floodFill(int startX, int startY) {
     Color target = image->getPixel (startX, startY);
@@ -1231,6 +1249,19 @@ int main (int argc, char ** argv) {
     rectangleTool->type(FL_RADIO_BUTTON);
     
     penTool->setonly();
+    
+    
+    
+    Fl_Value_Slider *brushSlider = new Fl_Value_Slider (10, 390, 100, 30, "Slider");
+    brushSlider->type(FL_HOR_NICE_SLIDER);
+    brushSlider->bounds(0, 100);
+    brushSlider->value(50);
+    brushSlider->step(1);
+    
+    
+    
+    
+    
     
     //----------------------------------------------------------------------------------------------
     leftPanel->end();
