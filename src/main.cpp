@@ -139,7 +139,8 @@ class ImageWidget : public Fl_Widget {
             TOOL_PEN,
             TOOL_LINE,
             TOOL_CIRCLE,
-            TOOL_BUCKET
+            TOOL_BUCKET,
+            TOOL_RECTANGLE
         };
     
     
@@ -520,6 +521,32 @@ void ImageWidget::draw () {
                 y0--;
             }
             x0++;
+        }
+    }
+    
+    if (isDrawingShape && currentTool == TOOL_RECTANGLE) {
+        int x0 = (startX - x()) / cellSize;
+        int y0 = (startY - y()) / cellSize;
+
+        int x1 = (previewX - x()) / cellSize;
+        int y1 = (previewY - y()) / cellSize;
+        
+        fl_color(currentColor.r, currentColor.g, currentColor.b);
+        
+        int left = std::min(x0, x1);
+        int right = std::max(x0, x1);
+        int top = std::min(y0, y1);
+        int bottom = std::max(y0, y1);
+        
+        
+        for (int x = left; x <= right; x++) {
+            drawPixelCell(x, y0);
+            drawPixelCell(x, y1);
+        }
+        
+        for (int y = top; y <= bottom; y++) {
+            drawPixelCell(x0, y);
+            drawPixelCell(x1, y);
         }
     }
 }
@@ -932,6 +959,33 @@ int ImageWidget::handle (int event) {
                 floodFill(px, py);
                 redraw();
             }
+            else if (isDrawingShape && currentTool == TOOL_RECTANGLE) {
+                int x0 = (startX - x()) / cellSize;
+                int y0 = (startY - y()) / cellSize;
+
+                int x1 = (Fl::event_x() - x()) / cellSize;
+                int y1 = (Fl::event_y() - y()) / cellSize;
+                
+                
+                int left = std::min(x0, x1);
+                int right = std::max(x0, x1);
+                int top = std::min(y0, y1);
+                int bottom = std::max(y0, y1);
+                
+                undoStack.push_back(*image);
+                redoStack.clear();
+                
+                
+                for (int x = left; x <= right; x++) {
+                    safeSetPixel(x, y0);
+                    safeSetPixel(x, y1);
+                }
+
+                for (int y = top; y <= bottom; y++) {
+                    safeSetPixel(x0, y);
+                    safeSetPixel(x1, y);
+                }
+            }
             isDrawingShape = false;
             return 1;
         }
@@ -1060,9 +1114,10 @@ void OnToolSelect (Fl_Widget *w, void *data) {
     else if (btn->label() == std::string("Bucket")) {
         widget->setCurrentTool(ImageWidget::TOOL_BUCKET);
     }
+    else if (btn->label() == std::string("Rectangle")) {
+        widget->setCurrentTool(ImageWidget::TOOL_RECTANGLE);
+    }
 }
-
-
 
 
 void Oneraser (Fl_Widget *w, void *data) {
@@ -1167,11 +1222,13 @@ int main (int argc, char ** argv) {
     Fl_Light_Button *lineTool   = new Fl_Light_Button(10, 230, 100, 30, "Line");
     Fl_Light_Button *circleTool = new Fl_Light_Button(10, 270, 100, 30, "Circle");
     Fl_Light_Button *bucketTool = new Fl_Light_Button(10, 310, 100, 30, "Bucket");
+    Fl_Light_Button *rectangleTool = new Fl_Light_Button(10, 350, 100, 30, "Rectangle");
     
     penTool->type(FL_RADIO_BUTTON);
     lineTool->type(FL_RADIO_BUTTON);
     circleTool->type(FL_RADIO_BUTTON);
     bucketTool->type(FL_RADIO_BUTTON);
+    rectangleTool->type(FL_RADIO_BUTTON);
     
     penTool->setonly();
     
@@ -1211,6 +1268,7 @@ int main (int argc, char ** argv) {
     lineTool->callback(OnToolSelect, widget);
     circleTool->callback(OnToolSelect, widget);
     bucketTool->callback(OnToolSelect, widget);
+    rectangleTool->callback(OnToolSelect, widget);
     
     
     
