@@ -191,7 +191,7 @@ class ImageWidget : public Fl_Widget {
                 endX = endY = 0;
                 previewX = previewY = 0;
                 isDrawingShape = false;
-                brushSize = 2;
+                brushSize = 1;
             }
         
         //----------------------------------------
@@ -1161,6 +1161,14 @@ void OnPickColor (Fl_Widget *w, void *data) {
 
 }
 
+void OnBrushSlider (Fl_Widget *w, void *data) {
+    Fl_Value_Slider *slider = (Fl_Value_Slider *)w;
+    ImageWidget *widget = (ImageWidget *)data;
+    
+    double value = slider->value();
+    widget->setBrushSize(value);
+}
+
 void OnClear (Fl_Widget *w, void *data) {
     int r = fl_choice(
                       "Clear the entire canvas?",
@@ -1269,9 +1277,9 @@ int main (int argc, char ** argv) {
     HoverButton *eraser = new HoverButton (0, 0, 0, 30, "Eraser");
     HoverLightButton *penTool    = new HoverLightButton(0, 0, 0, 30, "Pen");
     HoverLightButton *lineTool   = new HoverLightButton(0, 0, 0, 30, "Line");
+    HoverLightButton *rectangleTool = new HoverLightButton(0, 0, 0, 30, "Rectangle");
     HoverLightButton *circleTool = new HoverLightButton(0, 0, 0, 30, "Circle");
     HoverLightButton *bucketTool = new HoverLightButton(0, 0, 0, 30, "Bucket");
-    HoverLightButton *rectangleTool = new HoverLightButton(0, 0, 0, 30, "Rectangle");
     HoverButton *pickColor = new HoverButton (0, 0, 0, 30, "pick color"); 
     Fl_Box *preview = new Fl_Box (0, 0, 0, 30, "Color");
     
@@ -1287,18 +1295,18 @@ int main (int argc, char ** argv) {
     
     penTool->type(FL_RADIO_BUTTON);
     lineTool->type(FL_RADIO_BUTTON);
+    rectangleTool->type(FL_RADIO_BUTTON);
     circleTool->type(FL_RADIO_BUTTON);
     bucketTool->type(FL_RADIO_BUTTON);
-    rectangleTool->type(FL_RADIO_BUTTON);
     
     penTool->setonly();
     
     
     
     Fl_Value_Slider *brushSlider = new Fl_Value_Slider (0, 0, 0, 30, "Slider");
-    brushSlider->type(FL_HOR_NICE_SLIDER);
-    brushSlider->bounds(0, 100);
-    brushSlider->value(50);
+    brushSlider->type(FL_HOR_FILL_SLIDER);
+    brushSlider->bounds(1, 10);
+    brushSlider->value(1);
     brushSlider->step(1);
     
     
@@ -1310,6 +1318,7 @@ int main (int argc, char ** argv) {
     eraser->box(FL_SHADOW_BOX);
     penTool->box(FL_SHADOW_BOX);
     lineTool->box(FL_SHADOW_BOX);
+    rectangleTool->box(FL_SHADOW_BOX);
     circleTool->box(FL_SHADOW_BOX);
     bucketTool->box(FL_SHADOW_BOX);
     pickColor->box(FL_SHADOW_BOX);
@@ -1321,6 +1330,7 @@ int main (int argc, char ** argv) {
     eraser->align(FL_ALIGN_CENTER);
     penTool->align(FL_ALIGN_CENTER);
     lineTool->align(FL_ALIGN_CENTER);
+    rectangleTool->align(FL_ALIGN_CENTER);
     circleTool->align(FL_ALIGN_CENTER);
     bucketTool->align(FL_ALIGN_CENTER);
     pickColor->align(FL_ALIGN_CENTER);
@@ -1329,6 +1339,7 @@ int main (int argc, char ** argv) {
     eraser->color(fl_rgb_color(190, 200, 230));
     penTool->color(fl_rgb_color(190, 200, 230));
     lineTool->color(fl_rgb_color(190, 200, 230));
+    rectangleTool->color(fl_rgb_color(190, 200, 230));
     circleTool->color(fl_rgb_color(190, 200, 230));
     bucketTool->color(fl_rgb_color(190, 200, 230));
     pickColor->color(fl_rgb_color(190, 200, 230));
@@ -1337,12 +1348,10 @@ int main (int argc, char ** argv) {
     eraser->selection_color(fl_rgb_color(150, 170, 200));
     penTool->selection_color(fl_rgb_color(240, 245, 255));
     lineTool->selection_color(fl_rgb_color(240, 245, 255));
+    rectangleTool->selection_color(fl_rgb_color(240, 245, 255));
     circleTool->selection_color(fl_rgb_color(240, 245, 255));
     bucketTool->selection_color(fl_rgb_color(240, 245, 255));
     pickColor->selection_color(fl_rgb_color(150, 170, 200));
-    
-    
-    
     
     
     
@@ -1385,10 +1394,10 @@ int main (int argc, char ** argv) {
     
     penTool->callback(OnToolSelect, widget);
     lineTool->callback(OnToolSelect, widget);
+    rectangleTool->callback(OnToolSelect, widget);
     circleTool->callback(OnToolSelect, widget);
     bucketTool->callback(OnToolSelect, widget);
-    rectangleTool->callback(OnToolSelect, widget);
-    
+    brushSlider->callback(OnBrushSlider, widget);
     
     
     menubar->add("File/Open" ,FL_CTRL + 'o', load, widget);
