@@ -30,7 +30,6 @@ const int MAX_UNDO = 50;
 
 
 
-
 struct Color {
     int r;
     int g;
@@ -1036,26 +1035,6 @@ struct uiData {
     Fl_Box *preview;
 };
 
-
-void chooseColor (Fl_Widget *w, void *data) {
-    uiData *ui = (uiData*)data;
-    
-    double r = 1.0;
-    double g = 0.0;
-    double b = 0.0;
-    
-    if (fl_color_chooser ("Pick Color", r, g, b)) {
-        Color c;
-        c.r = (int) (r * 255);
-        c.g = (int) (g * 255);
-        c.b = (int) (b * 255);
-        
-        ui->widget->setCurrentColor(c);
-        
-    }
-    
-}
-
 void load (Fl_Widget *w, void *data) {
     ImageWidget *widget = (ImageWidget *)data;
     Image *img = widget->getImage();
@@ -1311,7 +1290,12 @@ int main (int argc, char ** argv) {
     HoverLightButton *rectangleTool = new HoverLightButton(0, 0, 0, 30, "Rectangle");
     HoverLightButton *circleTool = new HoverLightButton(0, 0, 0, 30, "Circle");
     HoverLightButton *bucketTool = new HoverLightButton(0, 0, 0, 30, "Bucket");
-    HoverButton *pickColor = new HoverButton (0, 0, 0, 30, "pick color"); 
+//    HoverButton *pickColor = new HoverButton (0, 0, 0, 30, "pick color"); 
+    
+    
+    
+
+    
     
     
 
@@ -1337,7 +1321,7 @@ int main (int argc, char ** argv) {
     preview->color(FL_BLACK);
     
     
-    Fl_Value_Slider *brushSlider = new Fl_Value_Slider (0, 0, 0, 30, "Slider");
+    Fl_Value_Slider *brushSlider = new Fl_Value_Slider (0, 0, 0, 30);
     brushSlider->type(FL_HOR_FILL_SLIDER);
     brushSlider->bounds(1, 10);
     brushSlider->value(1);
@@ -1355,7 +1339,7 @@ int main (int argc, char ** argv) {
     rectangleTool->box(FL_SHADOW_BOX);
     circleTool->box(FL_SHADOW_BOX);
     bucketTool->box(FL_SHADOW_BOX);
-    pickColor->box(FL_SHADOW_BOX);
+//    pickColor->box(FL_SHADOW_BOX);
     preview->box(FL_EMBOSSED_BOX);
     
     
@@ -1367,7 +1351,7 @@ int main (int argc, char ** argv) {
     rectangleTool->align(FL_ALIGN_CENTER);
     circleTool->align(FL_ALIGN_CENTER);
     bucketTool->align(FL_ALIGN_CENTER);
-    pickColor->align(FL_ALIGN_CENTER);
+//    pickColor->align(FL_ALIGN_CENTER);
     preview->align(FL_ALIGN_CENTER);
     
     eraser->color(fl_rgb_color(92, 103, 117));
@@ -1376,7 +1360,7 @@ int main (int argc, char ** argv) {
     rectangleTool->color(fl_rgb_color(92, 103, 117));
     circleTool->color(fl_rgb_color(92, 103, 117));
     bucketTool->color(fl_rgb_color(92, 103, 117));
-    pickColor->color(fl_rgb_color(92, 103, 117));
+//    pickColor->color(fl_rgb_color(92, 103, 117));
     
     eraser->selection_color(fl_rgb_color(100, 160, 255));
     penTool->selection_color(fl_rgb_color(100, 160, 255));
@@ -1384,7 +1368,20 @@ int main (int argc, char ** argv) {
     rectangleTool->selection_color(fl_rgb_color(100, 160, 255));
     circleTool->selection_color(fl_rgb_color(100, 160, 255));
     bucketTool->selection_color(fl_rgb_color(100, 160, 255));
-    pickColor->selection_color(fl_rgb_color(150, 170, 200));
+//    pickColor->selection_color(fl_rgb_color(150, 170, 200));
+    
+    
+    
+    
+    Fl_Color_Chooser *color_chooser = new Fl_Color_Chooser(0, 0, 0, 100);
+    color_chooser->box(FL_THIN_DOWN_BOX);
+    color_chooser->color(fl_rgb_color(45, 50, 58));
+    color_chooser->selection_color(fl_rgb_color(90, 150, 220));
+    
+    
+    
+    
+    
     
     
     
@@ -1421,7 +1418,7 @@ int main (int argc, char ** argv) {
     
     
     eraser->callback(Oneraser, ui);
-    pickColor->callback(OnPickColor, ui);
+//    pickColor->callback(OnPickColor, ui);
     
     
     penTool->callback(OnToolSelect, widget);
@@ -1430,6 +1427,43 @@ int main (int argc, char ** argv) {
     circleTool->callback(OnToolSelect, widget);
     bucketTool->callback(OnToolSelect, widget);
     brushSlider->callback(OnBrushSlider, widget);
+    
+    
+    
+    
+    
+    
+    
+    color_chooser->callback([](Fl_Widget *w, void *data) {
+        Fl_Color_Chooser *chooser = static_cast<Fl_Color_Chooser *>(w);
+        ImageWidget *widget = static_cast<ImageWidget *>(data);
+        
+        double rr = chooser->r();
+        double gg = chooser->g();
+        double bb = chooser->b();
+            
+            
+        Color c;
+        c.r = (int) (rr * 255);
+        c.g = (int) (gg * 255);
+        c.b = (int) (bb * 255);
+        
+        widget->setCurrentColor(c);
+    
+    }, widget);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     
     menubar->add("File/Open" ,FL_CTRL + 'o', load, widget);
@@ -1444,9 +1478,13 @@ int main (int argc, char ** argv) {
     menubar->add("Edit/Vertical Mirror", FL_CTRL + FL_SHIFT + 'v', OnVerticalMirror, widget, FL_MENU_TOGGLE);
     
     
-    menubar->add("Color", 0, chooseColor, ui);
+    menubar->add("Color", 0, OnPickColor, ui);
     menubar->add("About", 0, OnAbout);
-
+    
+    
+    
+    
+    
     window->resizable(scroll);
     window->end();
     window->show (argc, argv);
