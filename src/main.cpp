@@ -1207,11 +1207,11 @@ class HoverButton : public Fl_Button {
         int handle (int event) override {
             switch (event) {
                 case FL_ENTER:
-                    color(fl_rgb_color(170, 190, 215));
+                    color(fl_rgb_color(120, 135, 155));
                     redraw();
                     return 1;
                 case FL_LEAVE:
-                    color(fl_rgb_color(190, 200, 230));
+                    color(fl_rgb_color(92, 103, 117));
                     redraw();
                     return 1;
             }
@@ -1224,11 +1224,11 @@ class HoverLightButton : public Fl_Light_Button {
         int handle (int event) override {
             switch (event) {
                 case FL_ENTER:
-                    color(fl_rgb_color(170, 190, 215));
+                    color(fl_rgb_color(120, 135, 155));
                     redraw();
                     return 1;
                 case FL_LEAVE:
-                    color(fl_rgb_color(190, 200, 230));
+                    color(fl_rgb_color(92, 103, 117));
                     redraw();
                     return 1;
             }
@@ -1240,37 +1240,68 @@ class HoverLightButton : public Fl_Light_Button {
 
 
 
+
+
+class HoverMenu : public Fl_Menu_Bar {
+    public:
+        HoverMenu (int x, int y, int w, int h, const char *L = 0) : Fl_Menu_Bar (x, y, w, h, L) {}
+        int handle (int event) override {
+            switch (event) {
+                case FL_ENTER:
+                    color(fl_rgb_color(58, 66, 82));
+                    selection_color(fl_rgb_color(94, 156, 255));
+                    redraw();
+                    return 1;
+                case FL_LEAVE:
+                    color(fl_rgb_color(36, 40, 47));
+//                    selection_color(fl_rgb_color(77, 138, 255));
+                    redraw();
+                    return 1;
+            }
+            return Fl_Menu_Bar::handle(event);
+        } 
+};
+
 int main (int argc, char ** argv) {
     Fl::scheme("gleam");
     
     
     
-    float r = 0.5f;
-    float g = 0.5f;
-    float b = 0.5f;
+ 
+    
+    
+    float r = 0.22f;
+    float g = 0.24f;
+    float b = 0.26f;
     
     Fl_Double_Window *window = new Fl_Double_Window(1200, 800, "AnotherPixEditor");
-    window->color(fl_rgb_color(
-        (int)(r * 255),
-        (int)(g * 255),
-        (int)(b * 255)
-    ));
-    
-    
-    
-    
-    
+    window->color(fl_rgb_color(46, 53, 61));
     
     
     // menu bar
-    Fl_Menu_Bar *menubar = new Fl_Menu_Bar(0, 0, 1200, 30);
+//    Fl_Menu_Bar *menubar = new Fl_Menu_Bar(0, 0, 1200, 30);
+    HoverMenu *menubar = new HoverMenu(0, 0, 1200, 30);
+    
+    menubar->box(FL_THIN_DOWN_BOX);
+    menubar->color(fl_rgb_color(45, 50, 58));
+    menubar->textcolor(FL_WHITE);
     
     
+    
+    
+    
+    // menu bar end
     Image *img = new Image(32, 32);
     
     //----------------------------------------------------------------------------------------------
     
-    Fl_Flex *tools = new Fl_Flex(20, 100, 200, 210 + 58);
+    
+    Fl_Group *toolbar = new Fl_Group(0, 30, 200, 770);
+    toolbar->box(FL_FLAT_BOX);
+    toolbar->color(fl_rgb_color(36, 40, 47));
+    
+
+    Fl_Pack *tools = new Fl_Pack(15, 100, 170, 770);
     tools->type(Fl_Flex::VERTICAL);
     tools->spacing(10);
     
@@ -1281,7 +1312,7 @@ int main (int argc, char ** argv) {
     HoverLightButton *circleTool = new HoverLightButton(0, 0, 0, 30, "Circle");
     HoverLightButton *bucketTool = new HoverLightButton(0, 0, 0, 30, "Bucket");
     HoverButton *pickColor = new HoverButton (0, 0, 0, 30, "pick color"); 
-    Fl_Box *preview = new Fl_Box (0, 0, 0, 30, "Color");
+    
     
 
 //    tools->fixed(eraser, 30);
@@ -1302,17 +1333,20 @@ int main (int argc, char ** argv) {
     penTool->setonly();
     
     
+    Fl_Box *preview = new Fl_Box (0, 0, 0, 30, "Color");
+    preview->color(FL_BLACK);
+    
     
     Fl_Value_Slider *brushSlider = new Fl_Value_Slider (0, 0, 0, 30, "Slider");
     brushSlider->type(FL_HOR_FILL_SLIDER);
     brushSlider->bounds(1, 10);
     brushSlider->value(1);
     brushSlider->step(1);
+    brushSlider->textcolor(FL_WHITE);
+    brushSlider->color(fl_rgb_color(55,60,70));
     
     
     
-
-    preview->color (fl_rgb_color(0, 0, 0));
     
     
     eraser->box(FL_SHADOW_BOX);
@@ -1336,23 +1370,21 @@ int main (int argc, char ** argv) {
     pickColor->align(FL_ALIGN_CENTER);
     preview->align(FL_ALIGN_CENTER);
     
-    eraser->color(fl_rgb_color(190, 200, 230));
-    penTool->color(fl_rgb_color(190, 200, 230));
-    lineTool->color(fl_rgb_color(190, 200, 230));
-    rectangleTool->color(fl_rgb_color(190, 200, 230));
-    circleTool->color(fl_rgb_color(190, 200, 230));
-    bucketTool->color(fl_rgb_color(190, 200, 230));
-    pickColor->color(fl_rgb_color(190, 200, 230));
+    eraser->color(fl_rgb_color(92, 103, 117));
+    penTool->color(fl_rgb_color(92, 103, 117));
+    lineTool->color(fl_rgb_color(92, 103, 117));
+    rectangleTool->color(fl_rgb_color(92, 103, 117));
+    circleTool->color(fl_rgb_color(92, 103, 117));
+    bucketTool->color(fl_rgb_color(92, 103, 117));
+    pickColor->color(fl_rgb_color(92, 103, 117));
     
-    
-    eraser->selection_color(fl_rgb_color(150, 170, 200));
-    penTool->selection_color(fl_rgb_color(240, 245, 255));
-    lineTool->selection_color(fl_rgb_color(240, 245, 255));
-    rectangleTool->selection_color(fl_rgb_color(240, 245, 255));
-    circleTool->selection_color(fl_rgb_color(240, 245, 255));
-    bucketTool->selection_color(fl_rgb_color(240, 245, 255));
+    eraser->selection_color(fl_rgb_color(100, 160, 255));
+    penTool->selection_color(fl_rgb_color(100, 160, 255));
+    lineTool->selection_color(fl_rgb_color(100, 160, 255));
+    rectangleTool->selection_color(fl_rgb_color(100, 160, 255));
+    circleTool->selection_color(fl_rgb_color(100, 160, 255));
+    bucketTool->selection_color(fl_rgb_color(100, 160, 255));
     pickColor->selection_color(fl_rgb_color(150, 170, 200));
-    
     
     
     
@@ -1361,20 +1393,19 @@ int main (int argc, char ** argv) {
     
     tools->end();
     
+    toolbar->resizable(NULL);
+    toolbar->end();
+    
     //----------------------------------------------------------------------------------------------
 
     
     
     
    
-    Fl_Scroll *scroll = new Fl_Scroll(280, 50, 2 * img->getWidth() * 20, 2 * img->getHeight() * 20);
+    Fl_Scroll *scroll = new Fl_Scroll(280, 50, 2 * 16 * 23, 2 * 16 * 22);
+    scroll->box(FL_NO_BOX);
+    scroll->color(fl_rgb_color(26, 30, 38));
 
-
-    scroll->color(fl_rgb_color(
-        (int)(r * 255),
-        (int)(g * 255),
-        (int)(b * 255)
-    ));
     
     ImageWidget *widget = new ImageWidget(280, 50,
                                        img->getWidth() * 20,
@@ -1382,6 +1413,7 @@ int main (int argc, char ** argv) {
                                        img);
     widget->setPreviewBox(preview);
     
+    scroll->add(widget);
     scroll->end();
     
     uiData *ui = new uiData {widget, preview};
@@ -1418,6 +1450,8 @@ int main (int argc, char ** argv) {
     window->resizable(scroll);
     window->end();
     window->show (argc, argv);
-
+    
+    
+    
     return Fl::run();
 }
