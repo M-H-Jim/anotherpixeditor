@@ -555,15 +555,52 @@ void ImageWidget::draw () {
         int bottom = std::max(y0, y1);
         
         
-        for (int x = left; x <= right; x++) {
-            drawPixelCell(x, y0);
-            drawPixelCell(x, y1);
+//        for (int x = left; x <= right; x++) {
+//            drawPixelCell(x, y0);
+//            drawPixelCell(x, y1);
+//        }
+//        
+//        for (int y = top; y <= bottom; y++) {
+//            drawPixelCell(x0, y);
+//            drawPixelCell(x1, y);
+//        }
+        
+        
+        auto drawRect = [&](int lx, int rx, int ty, int by) {
+            for (int x = lx; x <= rx; x++) {
+                drawPixelCell(x, ty);
+                drawPixelCell(x, by);
+            }
+            for (int y = ty; y <= by; y++) {
+                drawPixelCell(lx, y);
+                drawPixelCell(rx, y);
+            }
+        };
+        
+        drawRect(left, right, top, bottom);
+        
+        if (mirrorHorizontal) {
+            int mirror_left  = image->getWidth() - 1 - right;
+            int mirror_right = image->getWidth() - 1 - left;
+            drawRect(mirror_left, mirror_right, top, bottom);
+        }
+        if (mirrorVertical) {
+            int mirror_top    = image->getHeight() - 1 - bottom;
+            int mirror_bottom = image->getHeight() - 1 - top;
+            drawRect(left, right, mirror_top, mirror_bottom);
+        }
+        if (mirrorHorizontal && mirrorVertical) {
+            int mirror_left  = image->getWidth() - 1 - right;
+            int mirror_right = image->getWidth() - 1 - left;
+            int mirror_top    = image->getHeight() - 1 - bottom;
+            int mirror_bottom = image->getHeight() - 1 - top;
+            drawRect(mirror_left, mirror_right, mirror_top, mirror_bottom);
         }
         
-        for (int y = top; y <= bottom; y++) {
-            drawPixelCell(x0, y);
-            drawPixelCell(x1, y);
-        }
+        
+        
+        
+        
     }
 }
 
@@ -1506,6 +1543,14 @@ int main (int argc, char ** argv) {
     
     scroll->add(widget);
     scroll->end();
+
+    
+    
+    
+    
+    
+    
+    
     
     uiData *ui = new uiData {widget, preview};
     
@@ -1579,7 +1624,47 @@ int main (int argc, char ** argv) {
     
     
     
+    
+    
+    
+    
+    
+    
+    //experimental
+    
+    Fl_Flex *flex = new Fl_Flex(0, 770, window->w(), 30);
+    flex->type(Fl_Flex::VERTICAL);
+    flex->begin();
+
+
+    Fl_Box *statusbar = new Fl_Box(0, 0, 0, 30);
+    statusbar->box(FL_FLAT_BOX);
+    statusbar->color(fl_rgb_color(40, 44, 52));
+    statusbar->labelcolor(FL_WHITE);
+    statusbar->align(FL_ALIGN_LEFT | FL_ALIGN_INSIDE);
+    statusbar->label("IT works");
+
+    flex->end();
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     window->resizable(scroll);
+
     window->end();
     window->show (argc, argv);
     
