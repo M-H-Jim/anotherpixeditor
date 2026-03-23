@@ -181,10 +181,17 @@ class ImageWidget : public Fl_Widget {
         
         
         
+        void updateStatus();
+        
+        
+        
+        
     public:
         ImageWidget (int x, int y, int w, int h, Image *img) :
             Fl_Widget (x, y, w, h), image (img), cellSize(20) 
             {
+                
+                
                 currentColor = {0, 0, 0}; // Black
                 showGrid = false;
                 mirrorHorizontal = false;
@@ -279,6 +286,7 @@ void ImageWidget::setPreviewBox(Fl_Box *box) {
 
 void ImageWidget::setCurrentTool(Tool t) {
     currentTool = t;
+    updateStatus();
 }
 
 void ImageWidget::setBrushSize(int s) {
@@ -362,8 +370,8 @@ void ImageWidget::setCellSize(int size) {
     
     cellSize = std::clamp(size, 2, 128);
     updateSize();
-    
     if(parent()) parent()->redraw();
+    updateStatus();
 }
 
 int ImageWidget::getCellSize() const {
@@ -975,7 +983,7 @@ int ImageWidget::handle (int event) {
             return 1;
         }
         case FL_DRAG: {
-            
+            updateStatus();
             if (middleDrag) {
                 int dx = Fl::event_x() - dragLastX;
                 int dy = Fl::event_y() - dragLastY;
@@ -1103,9 +1111,22 @@ int ImageWidget::handle (int event) {
             isDrawingShape = false;
             return 1;
         }
+        case FL_ENTER: {
+            updateStatus();
+            return 1;
+        }
+        case FL_LEAVE: {
+            updateStatus();
+            return 1;
+        }
+        case FL_MOVE: {
+            updateStatus();
+            return 1;
+        }
         
         
         case FL_MOUSEWHEEL: {
+            updateStatus();
             double dy = Fl::event_dy();
 //            if (dy < 0) {
 //                setCellSize(cellSize + 2);
@@ -1159,6 +1180,83 @@ int ImageWidget::handle (int event) {
 Image* ImageWidget::getImage() {
     return image;
 }
+
+
+void ImageWidget::updateStatus() {
+    if (!window() || window()->children() == 0) {
+        return;
+    }
+    
+    Fl_Widget *last = window()->child(window()->children() - 1);
+    Fl_Flex *flex = dynamic_cast<Fl_Flex *>(last);
+    if (!flex || flex->children() == 0) {
+        return;
+    }
+    
+    Fl_Box *box = dynamic_cast<Fl_Box *>(flex->child(0));
+    if (!box) {
+        return;
+    }
+    
+    int zoom = (int)std::round((cellSize / 20.0) * 100.0);
+    
+    
+    int mx = -1;
+    int my = -1;
+    
+    if (Fl::event_inside(this)) {
+        int local_x = Fl::event_x() - x();
+        int local_y = Fl::event_y() - y();
+        
+        mx = local_x / cellSize;
+        my = local_y / cellSize;
+        
+        if (mx < 0 || mx >= image->getWidth()) {
+            mx = -1;
+        }
+        if (my < 0 || my >= image->getHeight()) {
+            my = -1;
+        }
+        
+    }
+    
+    
+    const char *toolName = "?";
+    
+    switch (currentTool) {
+        case TOOL_PEN:
+            toolName = "Pen"; break;
+        case TOOL_LINE:
+            toolName = "Line"; break;
+        case TOOL_CIRCLE:
+            toolName = "Circle"; break;
+        case TOOL_RECTANGLE:
+            toolName = "Rectangle"; break;
+        case TOOL_BUCKET:
+            toolName = "Bucket"; break;
+    }
+    
+    
+    char buffer[160];
+    
+    snprintf(
+        buffer, sizeof(buffer), 
+        "Zoom: %d%% | X:%d Y:%d | %dx%d px | %s",
+        zoom, mx + 1, my + 1, image->getWidth(), image->getHeight(),
+        toolName
+    );
+    
+    box->copy_label(buffer);
+    box->redraw();
+    flex->redraw();
+    
+}
+
+
+
+
+
+
 
 
 struct uiData {
@@ -1631,18 +1729,19 @@ int main (int argc, char ** argv) {
     
     
     //experimental
+    const int STATUS_HEIGHT = 30;
     
-    Fl_Flex *flex = new Fl_Flex(0, 770, window->w(), 30);
+    Fl_Flex *flex = new Fl_Flex(0, window->h() - STATUS_HEIGHT, window->w(), STATUS_HEIGHT);
     flex->type(Fl_Flex::VERTICAL);
     flex->begin();
 
 
-    Fl_Box *statusbar = new Fl_Box(0, 0, 0, 30);
+    Fl_Box *statusbar = new Fl_Box(0, 0, 0, STATUS_HEIGHT);
     statusbar->box(FL_FLAT_BOX);
     statusbar->color(fl_rgb_color(40, 44, 52));
     statusbar->labelcolor(FL_WHITE);
     statusbar->align(FL_ALIGN_LEFT | FL_ALIGN_INSIDE);
-    statusbar->label("IT works");
+    statusbar->label("Zoom: 100% | X:0 Y:0 | 32x32 px | Pen");
 
     flex->end();
     
@@ -1661,7 +1760,7 @@ int main (int argc, char ** argv) {
     
     
     
-    
+    window->add(flex);
     
     window->resizable(scroll);
 
