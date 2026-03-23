@@ -891,13 +891,15 @@ void ImageWidget::floodFill(int startX, int startY) {
 
 
 int ImageWidget::handle (int event) {
+    int button = Fl::event_button();
     switch (event) {
         case FL_PUSH: {
             
-            if (Fl::event_button() == FL_MIDDLE_MOUSE) {
+            if (button == FL_MIDDLE_MOUSE) {
                 middleDrag = true;
                 dragLastX = Fl::event_x();
                 dragLastY = Fl::event_y();
+                fl_cursor(FL_CURSOR_HAND);
                 return 1;
             }
             
@@ -909,6 +911,11 @@ int ImageWidget::handle (int event) {
                 pickColorAtMouse(Fl::event_x(), Fl::event_y());
                 return 1;
             }
+            
+            if (button != FL_LEFT_MOUSE) {
+                return 1;
+            }
+            
             
             if (currentTool != TOOL_PEN) {
                 previewX = startX = Fl::event_x();
@@ -953,6 +960,11 @@ int ImageWidget::handle (int event) {
                 return 1;
             }
             
+            if (button != FL_LEFT_MOUSE) {
+                return 1;
+            }
+            
+            
             if (isDrawingShape && currentTool != TOOL_PEN) {
                 previewX = Fl::event_x();
                 previewY = Fl::event_y();
@@ -971,10 +983,13 @@ int ImageWidget::handle (int event) {
             
             if (Fl::event_button() == FL_MIDDLE_MOUSE) {
                 middleDrag = false;
+                fl_cursor(FL_CURSOR_DEFAULT);
                 return 1;
             }
             
-            
+            if (button != FL_LEFT_MOUSE) {
+                return 1;
+            }
             
             
             
