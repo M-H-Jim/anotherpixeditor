@@ -3,6 +3,7 @@
 #include <queue>
 #include <iostream>
 #include <fstream>
+#include <algorithm>
 
 
 #include <FL/Fl.H>
@@ -162,7 +163,12 @@ class ImageWidget : public Fl_Widget {
         std::vector<Image> redoStack;
         
         int brushSize;
-
+        
+        bool middleDrag;
+        int dragLastX;
+        int dragLastY;
+        
+        
         
         Tool currentTool;
         int startX;
@@ -191,6 +197,11 @@ class ImageWidget : public Fl_Widget {
                 previewX = previewY = 0;
                 isDrawingShape = false;
                 brushSize = 1;
+                middleDrag = false;
+                dragLastX = dragLastY = 0;
+                
+                
+                
             }
         
         //----------------------------------------
@@ -348,14 +359,8 @@ void ImageWidget::flipVertical() {
 
 
 void ImageWidget::setCellSize(int size) {
-    if (size < 2) {
-        size = 2;
-    }
-    if (size > 100) {
-        size = 100;
-    }
     
-    cellSize = size;
+    cellSize = std::clamp(size, 2, 128);
     updateSize();
     
     if(parent()) parent()->redraw();
@@ -889,6 +894,17 @@ int ImageWidget::handle (int event) {
     switch (event) {
         case FL_PUSH: {
             
+            if (Fl::event_button() == FL_MIDDLE_MOUSE) {
+                middleDrag = true;
+                dragLastX = Fl::event_x();
+                dragLastY = Fl::event_y();
+                return 1;
+            }
+            
+            
+            
+            
+            
             if (Fl::event_alt()) {
                 pickColorAtMouse(Fl::event_x(), Fl::event_y());
                 return 1;
@@ -916,6 +932,22 @@ int ImageWidget::handle (int event) {
         }
         case FL_DRAG: {
             
+            if (middleDrag) {
+                int dx = Fl::event_x() - dragLastX;
+                int dy = Fl::event_y() - dragLastY;
+                
+                if (Fl_Scroll *scroll = dynamic_cast<Fl_Scroll *>(parent())) {
+                    scroll->scroll_to(
+                        scroll->xposition() - dx,
+                        scroll->yposition() - dy
+                    );
+                }
+                
+                dragLastX = Fl::event_x();
+                dragLastY = Fl::event_y();
+                
+            }
+            
             if (Fl::event_alt()) {
                 pickColorAtMouse(Fl::event_x(), Fl::event_y());
                 return 1;
@@ -936,6 +968,16 @@ int ImageWidget::handle (int event) {
             return 1;
         }
         case FL_RELEASE: {
+            
+            if (Fl::event_button() == FL_MIDDLE_MOUSE) {
+                middleDrag = false;
+                return 1;
+            }
+            
+            
+            
+            
+            
             if (isDrawingShape && currentTool == TOOL_LINE) {
                 endX = Fl::event_x();
                 endY = Fl::event_y();
@@ -1012,16 +1054,53 @@ int ImageWidget::handle (int event) {
         
         
         case FL_MOUSEWHEEL: {
-            int dy = Fl::event_dy();
-            if (dy < 0) {
-                setCellSize(cellSize + 2);
+            double dy = Fl::event_dy();
+//            if (dy < 0) {
+//                setCellSize(cellSize + 2);
+//            }
+//            else {
+//                setCellSize(cellSize - 2);
+//            }
+            
+            if (dy == 0) return 0;
+            
+            int mx = Fl::event_x();
+            int my = Fl::event_y();
+            
+            double imgX = (mx - x()) / (double)cellSize;
+            double imgY = (my - y()) / (double)cellSize;
+            
+            int oldCellSize = cellSize;
+            int delta = (dy < 0) ? 1 : -1;
+            setCellSize(cellSize + delta);
+            
+            
+            
+            
+            
+            
+            
+            if (cellSize == oldCellSize) return 1;
+            
+            double newImgX = (mx - x()) / (double)cellSize;
+            double newImgY = (my - y()) / (double)cellSize;
+            
+            double dx = imgX - newImgX;
+            dy = imgY - newImgY;
+            
+            int scrollDx = (int)std::round(dx * cellSize);
+            int scrollDy = (int)std::round(dy * cellSize);
+            
+            if (Fl_Scroll *scroll = dynamic_cast<Fl_Scroll *>(parent())) {
+                scroll->scroll_to(
+                    scroll->xposition() + scrollDx,
+                    scroll->yposition() + scrollDy
+                );
             }
-            else {
-                setCellSize(cellSize - 2);
-            }
+            
+            redraw();
             return 1;
         }
-
     }
     return Fl_Widget::handle(event);
 }
