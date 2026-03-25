@@ -1407,6 +1407,7 @@ void load (Fl_Widget *w, void *data) {
         img->loadPPM(filename);
         widget->updateSize();
     }
+    widget->emptyUndo_Redo();
 }
 
 void save (Fl_Widget *w, void *data) {
@@ -1796,7 +1797,7 @@ int main (int argc, char ** argv) {
     
     
    
-    Fl_Scroll *scroll = new Fl_Scroll(240, 50, 960, 700);
+    Fl_Scroll *scroll = new Fl_Scroll(240, 50, 940, 700);
     scroll->box(FL_NO_BOX);
     scroll->color(fl_rgb_color(26, 30, 38));
 
