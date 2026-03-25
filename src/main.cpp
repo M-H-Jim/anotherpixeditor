@@ -1923,6 +1923,22 @@ int main (int argc, char ** argv) {
     window->resizable(scroll);
 
     window->end();
+    
+    window->callback([](Fl_Widget *w, void *data) {
+        ImageWidget *widget = (ImageWidget *)data;
+        if (checkUnsavedChanges(widget, "exiting")) {
+            w->hide();
+        }
+    }, widget);
+    
+    
+    
+    
+    
+    
+    
+    
+    
     window->show (argc, argv);
     
     
