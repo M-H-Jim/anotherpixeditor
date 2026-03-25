@@ -25,6 +25,7 @@
 #include <FL/Fl_Pack.H>
 #include <FL/fl_Flex.H>
 #include <FL/Fl_Tabs.H>
+#include <FL/Fl_Choice.H>
 
 
 const int MAX_UNDO = 50;
@@ -240,6 +241,11 @@ class ImageWidget : public Fl_Widget {
         int previewY;
         bool isDrawingShape;
         
+        bool modified;
+        std::string currentFilename;
+        
+        
+        
         
         
         void updateStatus();
@@ -268,7 +274,8 @@ class ImageWidget : public Fl_Widget {
                 middleDrag = false;
                 dragLastX = dragLastY = 0;
                 
-                
+                modified = false;
+                currentFilename = "";
                 
             }
         
@@ -308,6 +315,19 @@ class ImageWidget : public Fl_Widget {
         int getCellSize() const;
         Color getCurrentColor() const;
         Image* getImage();
+        void setImage(Image *newImage);
+        
+        
+        
+        void markModified();
+        bool isModified() const;
+        void unmarkModified();
+        
+        
+        void emptyUndo_Redo();
+        
+        
+        
         
         //----------------------------------------
 
@@ -315,7 +335,10 @@ class ImageWidget : public Fl_Widget {
 
 
 
-
+void ImageWidget::emptyUndo_Redo() {
+    undoStack.clear();
+    redoStack.clear();
+}
 
 
 
@@ -416,6 +439,7 @@ void ImageWidget::flipHorizontal() {
         }
     }
     redraw();
+    markModified();
 }
 
 void ImageWidget::flipVertical() {
@@ -433,6 +457,7 @@ void ImageWidget::flipVertical() {
         }
     }
     redraw();
+    markModified();
 }
 
 
@@ -779,6 +804,7 @@ void ImageWidget::setLinePixels(int x0, int y0, int x1, int y1) {
             y0 += sy;
         }
     }
+    markModified();
 }
 
 void ImageWidget::drawCirclePoints(int cx, int cy, int x, int y) {
@@ -846,6 +872,7 @@ void ImageWidget::safeSetPixel (int x, int y) {
         
         damage(FL_DAMAGE_USER1, px, py, cellSize, cellSize);
     }
+    markModified();
 }
 
 void ImageWidget::set8CirclePixels (int cx, int cy, int x, int y) {
@@ -879,6 +906,7 @@ void ImageWidget::setCirclePixels (int cx, int cy, int r) {
         }
         x0++;
     }
+    markModified();
 }
 
 void ImageWidget::pickColorAtMouse(int mouseX, int mouseY) {
@@ -955,7 +983,7 @@ void ImageWidget::drawAtMouse(int mouseX, int mouseY) {
         }
     }
     
-    
+    markModified();
 }
 
 void ImageWidget::floodFill(int startX, int startY) {
@@ -995,6 +1023,7 @@ void ImageWidget::floodFill(int startX, int startY) {
         q.push({x, y + 1});
         q.push({x, y - 1});
     }
+    markModified();
 }
 
 
@@ -1250,7 +1279,16 @@ int ImageWidget::handle (int event) {
 Image* ImageWidget::getImage() {
     return image;
 }
-
+void ImageWidget::setImage(Image *newImage) {
+    delete image;
+    image = newImage;
+    updateSize();
+    unmarkModified();
+    redraw();
+    if (parent()) {
+        parent()->redraw();
+    }
+}
 
 void ImageWidget::updateStatus() {
     if (!window() || window()->children() == 0) {
@@ -1323,6 +1361,31 @@ void ImageWidget::updateStatus() {
 }
 
 
+
+void ImageWidget::markModified() {
+    if (!modified) {
+        modified = true;
+        if (window()) {
+            std::string title = "AnotherPixEditor";
+            if (!currentFilename.empty()) {
+                title = currentFilename + " - AnotherPixEditor";
+            }
+            title = "* " + title;
+            window()->label(title.c_str());
+        }
+    }
+}
+
+bool ImageWidget::isModified() const {
+    return modified;
+}
+
+void ImageWidget::unmarkModified() {
+    modified = false;
+    if (window()) {
+        window()->label("AnotherPixEditor");
+    }
+}
 
 
 
@@ -1479,14 +1542,99 @@ void OnRedo (Fl_Widget *w, void *data) {
 void OnAbout(Fl_Widget *w, void *data) {
     fl_message(
         "AnotherPixEditor\n"
-        "  2026 M.H.Jim\n"
+        "2026 M.H.Jim\n"
         "Built with FLTK 1.4.4"
     );
 }
 
 
 
+int askForCanvasSize() {
+//    const char *choices[] = {
+//        "16x16", 
+//        "32x32", 
+//        "48x48", 
+//        "64x64", 
+//        "96x96", 
+//        "128x128", 
+//        "256x256", 
+//        nullptr
+//    };
+//    int choice = fl_choice("Choose new canvas size (N x N):", 
+//                           choices[0], choices[1], choices[2], 
+//                           choices[3], choices[4], choices[5], 
+//                           choices[6]);
+//    if (choice < 0) {
+//        return 32;
+//    }
+//    
+//    switch (choice) {
+//        case 0: return 16;
+//        case 1: return 32;
+//        case 2: return 48;
+//        case 3: return 64;
+//        case 4: return 96;
+//        case 5: return 128;
+//        case 6: return 256;
+//        default: return 32;
+//    }
 
+    while (true) {
+        const char* input = fl_input("Enter new canvas size (N x N):", "16");
+        if (!input) {
+            return 32;                    
+        }
+        
+        int size = atoi(input);
+        
+        if (size >= 8 && size <= 512) {
+            return size;
+        }
+        
+        fl_alert("Please enter a number between 8 and 512.");
+    }
+
+
+
+
+}
+
+bool checkUnsavedChanges (ImageWidget *widget, const char *action) {
+    if (!widget->isModified()) {
+        return true;
+    }
+    
+    int r = fl_choice(
+        "The current image has unsaved changes.\n"
+        "Do you want to save before %s?",
+        "Cancel", "Save", "Discard",
+        action
+    );
+    
+    if (r == 0) {
+        return false;
+    }
+    if (r == 1) {
+        save(nullptr, widget);
+        return !widget->isModified();
+    }
+    return true;
+}
+
+void newCanvas (Fl_Widget *w, void *data) {
+    ImageWidget *widget = (ImageWidget *)data;
+    
+    if (!checkUnsavedChanges(widget, "creating a new image")) {
+        return;
+    }
+    int size = askForCanvasSize();
+    
+    Image *newImg = new Image(size, size);
+    widget->setImage(newImg);
+    
+    widget->emptyUndo_Redo();
+    
+}
 
 int main (int argc, char ** argv) {
     Fl::scheme("gleam");
@@ -1517,8 +1665,7 @@ int main (int argc, char ** argv) {
     
     
     // menu bar end
-    Image *img = new Image(32, 32);
-    
+
     //----------------------------------------------------------------------------------------------
     
     
@@ -1643,6 +1790,9 @@ int main (int argc, char ** argv) {
     //----------------------------------------------------------------------------------------------
 
     
+    int initialSize = askForCanvasSize();
+    Image *img = new Image(initialSize, initialSize);
+    
     
     
    
@@ -1722,7 +1872,7 @@ int main (int argc, char ** argv) {
     
     
     
-    
+    menubar->add("File/New", FL_CTRL + 'n', newCanvas, widget);
     menubar->add("File/Open" ,FL_CTRL + 'o', load, widget);
     menubar->add("File/Save", FL_CTRL + 's', save, widget);
     
