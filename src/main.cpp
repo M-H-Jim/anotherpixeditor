@@ -31,6 +31,67 @@ const int MAX_UNDO = 50;
 
 
 
+class HoverButton : public Fl_Button {
+    public:
+        HoverButton (int x, int y, int w, int h, const char *L = 0) : Fl_Button (x, y, w, h, L) {}
+        int handle (int event) override {
+            switch (event) {
+                case FL_ENTER:
+                    color(fl_rgb_color(120, 135, 155));
+                    redraw();
+                    return 1;
+                case FL_LEAVE:
+                    color(fl_rgb_color(92, 103, 117));
+                    redraw();
+                    return 1;
+            }
+            return Fl_Button::handle(event);
+        } 
+};
+class HoverLightButton : public Fl_Light_Button {
+    public:
+        HoverLightButton (int x, int y, int w, int h, const char *L = 0) : Fl_Light_Button (x, y, w, h, L) {}
+        int handle (int event) override {
+            switch (event) {
+                case FL_ENTER:
+                    color(fl_rgb_color(120, 135, 155));
+                    redraw();
+                    return 1;
+                case FL_LEAVE:
+                    color(fl_rgb_color(92, 103, 117));
+                    redraw();
+                    return 1;
+            }
+            return Fl_Light_Button::handle(event);
+        } 
+};
+class HoverMenu : public Fl_Menu_Bar {
+    public:
+        HoverMenu (int x, int y, int w, int h, const char *L = 0) : Fl_Menu_Bar (x, y, w, h, L) {}
+        int handle (int event) override {
+            switch (event) {
+                case FL_ENTER:
+                    color(fl_rgb_color(58, 66, 82));
+                    selection_color(fl_rgb_color(94, 156, 255));
+                    redraw();
+                    return 1;
+                case FL_LEAVE:
+                    color(fl_rgb_color(36, 40, 47));
+//                    selection_color(fl_rgb_color(77, 138, 255));
+                    redraw();
+                    return 1;
+            }
+            return Fl_Menu_Bar::handle(event);
+        } 
+};
+
+
+
+
+
+
+
+
 struct Color {
     int r;
     int g;
@@ -1262,6 +1323,7 @@ void ImageWidget::updateStatus() {
 struct uiData {
     ImageWidget *widget;
     Fl_Box *preview;
+    HoverLightButton *penButton;
 };
 
 void load (Fl_Widget *w, void *data) {
@@ -1352,6 +1414,11 @@ void OnToolSelect (Fl_Widget *w, void *data) {
 void Oneraser (Fl_Widget *w, void *data) {
     uiData *ui = (uiData*)data;
     ui->widget->setCurrentColor({255, 255, 255});
+    ui->widget->setCurrentTool(ImageWidget::TOOL_PEN);
+    if (ui->penButton) {
+        ui->penButton->setonly();
+        ui->penButton->redraw();
+    }
 }
 
 void OnPickColor (Fl_Widget *w, void *data) {
@@ -1409,66 +1476,8 @@ void OnAbout(Fl_Widget *w, void *data) {
 }
 
 
-class HoverButton : public Fl_Button {
-    public:
-        HoverButton (int x, int y, int w, int h, const char *L = 0) : Fl_Button (x, y, w, h, L) {}
-        int handle (int event) override {
-            switch (event) {
-                case FL_ENTER:
-                    color(fl_rgb_color(120, 135, 155));
-                    redraw();
-                    return 1;
-                case FL_LEAVE:
-                    color(fl_rgb_color(92, 103, 117));
-                    redraw();
-                    return 1;
-            }
-            return Fl_Button::handle(event);
-        } 
-};
-class HoverLightButton : public Fl_Light_Button {
-    public:
-        HoverLightButton (int x, int y, int w, int h, const char *L = 0) : Fl_Light_Button (x, y, w, h, L) {}
-        int handle (int event) override {
-            switch (event) {
-                case FL_ENTER:
-                    color(fl_rgb_color(120, 135, 155));
-                    redraw();
-                    return 1;
-                case FL_LEAVE:
-                    color(fl_rgb_color(92, 103, 117));
-                    redraw();
-                    return 1;
-            }
-            return Fl_Light_Button::handle(event);
-        } 
-};
 
 
-
-
-
-
-
-class HoverMenu : public Fl_Menu_Bar {
-    public:
-        HoverMenu (int x, int y, int w, int h, const char *L = 0) : Fl_Menu_Bar (x, y, w, h, L) {}
-        int handle (int event) override {
-            switch (event) {
-                case FL_ENTER:
-                    color(fl_rgb_color(58, 66, 82));
-                    selection_color(fl_rgb_color(94, 156, 255));
-                    redraw();
-                    return 1;
-                case FL_LEAVE:
-                    color(fl_rgb_color(36, 40, 47));
-//                    selection_color(fl_rgb_color(77, 138, 255));
-                    redraw();
-                    return 1;
-            }
-            return Fl_Menu_Bar::handle(event);
-        } 
-};
 
 int main (int argc, char ** argv) {
     Fl::scheme("gleam");
@@ -1628,7 +1637,7 @@ int main (int argc, char ** argv) {
     
     
    
-    Fl_Scroll *scroll = new Fl_Scroll(280, 50, 2 * 16 * 23, 2 * 16 * 22);
+    Fl_Scroll *scroll = new Fl_Scroll(220, 50, 960, 700);
     scroll->box(FL_NO_BOX);
     scroll->color(fl_rgb_color(26, 30, 38));
 
@@ -1642,6 +1651,7 @@ int main (int argc, char ** argv) {
     scroll->add(widget);
     scroll->end();
 
+
     
     
     
@@ -1650,7 +1660,7 @@ int main (int argc, char ** argv) {
     
     
     
-    uiData *ui = new uiData {widget, preview};
+    uiData *ui = new uiData {widget, preview, penTool};
     
     
     
@@ -1744,19 +1754,6 @@ int main (int argc, char ** argv) {
     statusbar->label("Zoom: 100% | X:0 Y:0 | 32x32 px | Pen");
 
     flex->end();
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     
     
     
