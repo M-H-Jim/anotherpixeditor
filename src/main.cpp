@@ -229,7 +229,7 @@ class ImageWidget : public Fl_Widget {
         int dragLastX;
         int dragLastY;
         
-        
+        Fl_Color_Chooser *colorChooser = nullptr;
         
         Tool currentTool;
         int startX;
@@ -303,7 +303,7 @@ class ImageWidget : public Fl_Widget {
         void setCellSize (int size);
         void setCurrentTool (Tool t);
         void setPreviewBox (Fl_Box *box);
-        
+        void setColorChooser(Fl_Color_Chooser *chooser);
         
         int getCellSize() const;
         Color getCurrentColor() const;
@@ -326,6 +326,11 @@ void ImageWidget::setCurrentColor (const Color& c) {
         previewBox->color(fl_rgb_color(c.r, c.g, c.b));
         previewBox->redraw();
     }
+    if (colorChooser) {
+        colorChooser->color(fl_rgb_color(c.r, c.g, c.b));
+        colorChooser->rgb(c.r / (double)255, c.g / (double)255, c.b / (double)255);
+        colorChooser->redraw();
+    }
 }
 
 void ImageWidget::setShowGrid (bool value) {
@@ -343,6 +348,10 @@ void ImageWidget::setMirrorVertical (bool value) {
 
 void ImageWidget::setPreviewBox(Fl_Box *box) {
     previewBox = box;
+}
+
+void ImageWidget::setColorChooser(Fl_Color_Chooser *chooser) {
+    colorChooser = chooser;
 }
 
 void ImageWidget::setCurrentTool(Tool t) {
@@ -1513,12 +1522,12 @@ int main (int argc, char ** argv) {
     //----------------------------------------------------------------------------------------------
     
     
-    Fl_Group *toolbar = new Fl_Group(0, 30, 200, 770);
+    Fl_Group *toolbar = new Fl_Group(0, 30, 220, 770);
     toolbar->box(FL_FLAT_BOX);
     toolbar->color(fl_rgb_color(36, 40, 47));
     
 
-    Fl_Pack *tools = new Fl_Pack(15, 100, 170, 770);
+    Fl_Pack *tools = new Fl_Pack(15, 100, 190, 770);
     tools->type(Fl_Flex::VERTICAL);
     tools->spacing(10);
     
@@ -1612,7 +1621,7 @@ int main (int argc, char ** argv) {
     
     
     Fl_Color_Chooser *color_chooser = new Fl_Color_Chooser(0, 0, 0, 100);
-    color_chooser->box(FL_THIN_DOWN_BOX);
+    color_chooser->box(FL_NO_BOX);
     color_chooser->color(fl_rgb_color(45, 50, 58));
     color_chooser->selection_color(fl_rgb_color(90, 150, 220));
     
@@ -1637,7 +1646,7 @@ int main (int argc, char ** argv) {
     
     
    
-    Fl_Scroll *scroll = new Fl_Scroll(220, 50, 960, 700);
+    Fl_Scroll *scroll = new Fl_Scroll(240, 50, 960, 700);
     scroll->box(FL_NO_BOX);
     scroll->color(fl_rgb_color(26, 30, 38));
 
@@ -1647,6 +1656,7 @@ int main (int argc, char ** argv) {
                                        img->getHeight() * 20,
                                        img);
     widget->setPreviewBox(preview);
+    widget->setColorChooser(color_chooser);
     
     scroll->add(widget);
     scroll->end();
