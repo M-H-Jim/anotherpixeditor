@@ -1284,7 +1284,6 @@ void load (Fl_Widget *w, void *data) {
         return;
     }
     
-    
     const char *filename = fl_file_chooser ("Open PPM File", "*.ppm", "");
     if (!filename) {
         return;
@@ -1303,82 +1302,48 @@ void load (Fl_Widget *w, void *data) {
     catch (...) {
         fl_alert("Failed to open file!");
     }
-    
-    
-    
-    
-    
-    
-//    if (filename) {
-//        img->loadPPM(filename);
-//        widget->updateSize();
-//    }
-//    widget->emptyUndo_Redo();
-//    widget->unmarkModified();
 }
 
-
-
-
-//void save (Fl_Widget *w, void *data) {
-//    ImageWidget *widget = (ImageWidget *)data;
-//    Image *img = widget->getImage();
-//    
-//    const char *filename = fl_file_chooser("Save PPM File", "*.ppm", "untitled.ppm");
-//    
-//    if (filename) {
-//        img->savePPM(filename);
-//        widget->unmarkModified();
-//    }
-//    
-//}
 
 void save (Fl_Widget *w, void *data) {
     ImageWidget *widget = (ImageWidget *)data;
     
-    std::string suggestedName = widget->getCurrentFilename().empty() ? "untitled.ppm" : widget->getCurrentFilename();
-    const char *filename = fl_file_chooser("Save PPM File", "*.ppm", suggestedName.c_str());
-    if (!filename) {
-        return;
-    }
+    std::string filename;
     
-    if (std::ifstream(filename).good()) {
-        int choice = fl_choice("File already exists. Overwrite?",
-                               "Cancel", "Overwrite", nullptr);
-        if (choice != 1) {
+    if (widget->getCurrentFilename().empty()) {
+        const char *chosen = fl_file_chooser("Save PPM File", "*.ppm", "untitled.ppm");
+        
+        if (!chosen) {
             return;
         }
+        
+        filename = chosen;
+        
+        if (std::ifstream(filename).good()) {
+            int choice = fl_choice("File already exists. Overwrite?",
+                                   "Cancel", "Overwrite", nullptr);
+            if (choice != 1) {
+                return;
+            }
+        }
+    }
+    else {
+        filename = widget->getCurrentFilename();
     }
     
     try {
         widget->getImage()->savePPM(filename);
-        
         widget->setCurrentFilename(filename);
         widget->unmarkModified();
-        
-        std::string title = std::string(filename) + " - AnotherPixEditor";
+        std::string title = filename + " - AnotherPixEditor";
         widget->window()->label(title.c_str());
     }
     catch (...) {
         fl_alert("Failed to save the file!");
     }
+    
+    
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 int askForCanvasSize() {
