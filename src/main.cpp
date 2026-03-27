@@ -155,6 +155,8 @@ void Image::loadPPM (const std::string& filename) {
     std::string magic;
     in >> magic;
     
+    
+    
     in >> width >> height;
     int maxColor;
     in >> maxColor;
@@ -1521,12 +1523,16 @@ int main (int argc, char ** argv) {
     tools->type(Fl_Flex::VERTICAL);
     tools->spacing(10);
     
-    HoverButton *eraser = new HoverButton (0, 0, 0, 30, "Eraser");
-    HoverLightButton *penTool    = new HoverLightButton(0, 0, 0, 30, "Pen");
-    HoverLightButton *lineTool   = new HoverLightButton(0, 0, 0, 30, "Line");
-    HoverLightButton *rectangleTool = new HoverLightButton(0, 0, 0, 30, "Rectangle");
-    HoverLightButton *circleTool = new HoverLightButton(0, 0, 0, 30, "Circle");
-    HoverLightButton *bucketTool = new HoverLightButton(0, 0, 0, 30, "Bucket");
+    #define size 30
+    
+    
+    
+    HoverButton *eraser = new HoverButton (0, 0, 0, size, "Eraser");
+    HoverLightButton *penTool    = new HoverLightButton(0, 0, 0, size, "Pen");
+    HoverLightButton *lineTool   = new HoverLightButton(0, 0, 0, size, "Line");
+    HoverLightButton *rectangleTool = new HoverLightButton(0, 0, 0, size, "Rectangle");
+    HoverLightButton *circleTool = new HoverLightButton(0, 0, 0, size, "Circle");
+    HoverLightButton *bucketTool = new HoverLightButton(0, 0, 0, size, "Bucket");
 
     
     penTool->type(FL_RADIO_BUTTON);
@@ -1538,11 +1544,11 @@ int main (int argc, char ** argv) {
     penTool->setonly();
     
     
-    Fl_Box *preview = new Fl_Box (0, 0, 0, 30, "Color");
+    Fl_Box *preview = new Fl_Box (0, 0, 0, size, "Color");
     preview->color(FL_BLACK);
     
     
-    Fl_Value_Slider *brushSlider = new Fl_Value_Slider (0, 0, 0, 30);
+    Fl_Value_Slider *brushSlider = new Fl_Value_Slider (0, 0, 0, size);
     brushSlider->type(FL_HOR_FILL_SLIDER);
     brushSlider->bounds(1, 10);
     brushSlider->value(1);
@@ -1551,38 +1557,30 @@ int main (int argc, char ** argv) {
     brushSlider->color(fl_rgb_color(55,60,70));
     
     
-    eraser->box(FL_SHADOW_BOX);
-    penTool->box(FL_SHADOW_BOX);
-    lineTool->box(FL_SHADOW_BOX);
-    rectangleTool->box(FL_SHADOW_BOX);
-    circleTool->box(FL_SHADOW_BOX);
-    bucketTool->box(FL_SHADOW_BOX);
     preview->box(FL_EMBOSSED_BOX);
-    
-    
-    
-    
-    eraser->align(FL_ALIGN_CENTER);
-    penTool->align(FL_ALIGN_CENTER);
-    lineTool->align(FL_ALIGN_CENTER);
-    rectangleTool->align(FL_ALIGN_CENTER);
-    circleTool->align(FL_ALIGN_CENTER);
-    bucketTool->align(FL_ALIGN_CENTER);
     preview->align(FL_ALIGN_CENTER);
     
-    eraser->color(fl_rgb_color(92, 103, 117));
-    penTool->color(fl_rgb_color(92, 103, 117));
-    lineTool->color(fl_rgb_color(92, 103, 117));
-    rectangleTool->color(fl_rgb_color(92, 103, 117));
-    circleTool->color(fl_rgb_color(92, 103, 117));
-    bucketTool->color(fl_rgb_color(92, 103, 117));
+    #define BUTTON_COLOR      fl_rgb_color(92, 103, 117)
+    #define SELECTION_COLOR   fl_rgb_color(100, 160, 255)
     
-    eraser->selection_color(fl_rgb_color(100, 160, 255));
-    penTool->selection_color(fl_rgb_color(100, 160, 255));
-    lineTool->selection_color(fl_rgb_color(100, 160, 255));
-    rectangleTool->selection_color(fl_rgb_color(100, 160, 255));
-    circleTool->selection_color(fl_rgb_color(100, 160, 255));
-    bucketTool->selection_color(fl_rgb_color(100, 160, 255));
+    Fl_Widget* buttons[] = { eraser, penTool, lineTool, rectangleTool, circleTool, bucketTool };
+
+    for (auto btn : buttons) {
+        btn->box(FL_SHADOW_BOX);
+        btn->align(FL_ALIGN_CENTER);
+        btn->color(BUTTON_COLOR);
+        btn->selection_color(SELECTION_COLOR);
+    } 
+    
+    
+    
+    
+    
+    tools->end();
+    
+    
+    Fl_Pack *cc = new Fl_Pack(15, 500, 190, 770);
+    cc->type(Fl_Flex::VERTICAL);
     
     Fl_Color_Chooser *color_chooser = new Fl_Color_Chooser(0, 0, 0, 100);
     color_chooser->box(FL_NO_BOX);
@@ -1590,7 +1588,10 @@ int main (int argc, char ** argv) {
     color_chooser->selection_color(fl_rgb_color(90, 150, 220));
     
     
-    tools->end();
+    cc->end();
+    
+    
+    
     
     toolbar->resizable(NULL);
     toolbar->end();
