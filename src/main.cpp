@@ -258,6 +258,8 @@ class ImageWidget : public Fl_Widget {
         void updateSize ();
         void undo();
         void redo();
+        void pushOnUndo();
+        
         
         
         void setLinePixels (int x0, int y0, int x1, int y1);
@@ -362,6 +364,15 @@ void ImageWidget::redo() {
     
     redraw();
     
+}
+void ImageWidget::pushOnUndo() {
+    undoStack.push_back(*image);
+            
+    if (undoStack.size() > MAX_UNDO) {
+        undoStack.erase(undoStack.begin());
+    }
+    
+    redoStack.clear();
 }
 void ImageWidget::emptyUndo_Redo() {
     undoStack.clear();
@@ -1449,6 +1460,16 @@ void OnClear (Fl_Widget *w, void *data) {
     
     if (r == 1) {
         
+        ImageWidget *widget = (ImageWidget *)data;
+        Image *img = widget->getImage();
+        widget->pushOnUndo();
+        for (int y = 0; y < img->getHeight(); y++) {
+            for (int x = 0; x < img->getWidth(); x++) {
+                img->setPixel(x, y, {255, 255, 255});
+            }
+        }
+        widget->redraw();
+        widget->markModified();
     }
     
 }
@@ -1643,6 +1664,7 @@ int main (int argc, char ** argv) {
     
     menubar->add("Edit/Undo\t\t\t\t", FL_CTRL + 'z', OnUndo, widget);
     menubar->add("Edit/Redo", FL_CTRL + 'y', OnRedo, widget);
+    menubar->add("Edit/Clear", 0, OnClear, widget);
     menubar->add("Edit/Flip Horizontally", 0, OnFlipHorizontal, widget);
     menubar->add("Edit/Flip Vertically", 0, OnFlipVertical, widget);
     menubar->add("Edit/Show Grid", 'g', OnGridToggle, widget, FL_MENU_TOGGLE);
