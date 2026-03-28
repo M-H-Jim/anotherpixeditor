@@ -20,14 +20,16 @@
 #include <FL/Fl_Light_Button.H>
 #include <Fl/Fl_Menu_Bar.H>
 #include <FL/Fl_Pack.H>
+#include <FL/Fl_Pixmap.H>
 #include <FL/Fl_Rect.H>
+#include <FL/Fl_RGB_Image.H>
 #include <Fl/Fl_Scroll.H>
+#include <FL/Fl_Shared_Image.H>
 #include <FL/fl_show_colormap.H>
 #include <FL/Fl_Tabs.H>
 #include <FL/Fl_Value_Slider.H>
 #include <FL/Fl_Widget.H>
 #include <FL/Fl_Window.H>
-
 
 const int MAX_UNDO = 50;
 
@@ -147,25 +149,58 @@ void Image::savePPM (const std::string& filename) const {
         out << '\n';
     }
 }
-void Image::loadPPM (const std::string& filename) {
-    std::ifstream in (filename);
+void Image::loadPPM(const std::string& filename) {
+    std::ifstream in(filename);
     if (!in) {
-        throw std::runtime_error ("Cannot open file: " + filename);
+        throw std::runtime_error("Cannot open file: " + filename);
     }
-    
+
+    auto skipComments = [&in]() {
+        std::string line;
+        while (in) {
+            char c = in.peek();
+            if (c == '#') {
+                std::getline(in, line);
+            } 
+            else if (std::isspace(c)) {
+                in.ignore();
+            } 
+            else {
+                break;
+            }
+        }
+    };
+
     std::string magic;
+    skipComments();
     in >> magic;
-    
+
+    if (magic != "P3") {
+        throw std::runtime_error("Unsupported PPM format: " + magic + " (only P3 supported)");
+    }
+
+    skipComments();
     in >> width >> height;
+
+    skipComments();
     int maxColor;
     in >> maxColor;
-    
+
+    if (width <= 0 || height <= 0 || maxColor <= 0) {
+        throw std::runtime_error("Invalid PPM dimensions or max color value");
+    }
+
     pixels.resize(width * height);
     
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
+            skipComments();
             Color c;
             in >> c.r >> c.g >> c.b;
+            if (in.fail()) {
+                throw std::runtime_error("Failed to read pixel data at (" 
+                                       + std::to_string(x) + "," + std::to_string(y) + ")");
+            }
             setPixel(x, y, c);
         }
     }
@@ -179,7 +214,6 @@ int Image::getWidth() const {
 int Image::getHeight() const {
     return height;
 }
-
 
 
 class ImageWidget : public Fl_Widget {
@@ -1570,6 +1604,7 @@ void OnHelp (Fl_Widget *w, void *data) {
         "<tr><td><b>Ctrl + Z</b></td><td>Undo</td></tr>"
         "<tr><td><b>Ctrl + Y</b></td><td>Redo</td></tr>"
         "<tr><td><b>G</b></td><td>Toggle Grid</td></tr>"
+        "<tr><td><b>Alt + C</b></td><td>Popup Colormap</td></tr>"
         "<tr><td><b>Alt + Click</b></td><td>Pick color</td></tr>"
         "<tr><td><b>Ctrl + H</b></td><td>Flip Horizontally</td></tr>"
         "<tr><td><b>Ctrl + V</b></td><td>Flip Vertically</td></tr>"
@@ -1620,6 +1655,7 @@ void OnLicense (Fl_Widget *w, void *data) {
     help->show();
 }
 
+#include "pen_icon.xpm"
 
 int main (int argc, char ** argv) {
     Fl::scheme("gleam");
@@ -1630,6 +1666,12 @@ int main (int argc, char ** argv) {
     
     Fl_Double_Window *window = new Fl_Double_Window(1200, 800, "AnotherPixEditor");
     window->color(fl_rgb_color(46, 53, 61));
+    
+
+    Fl_Pixmap* pixmap = new Fl_Pixmap(pen_icon);
+    Fl_RGB_Image* icon = new Fl_RGB_Image(pixmap);
+    window->icon(icon);
+    
     
     
     // menu bar
@@ -1658,7 +1700,23 @@ int main (int argc, char ** argv) {
     HoverLightButton *circleTool = new HoverLightButton(0, 0, 0, 30, "Circle");
     HoverLightButton *bucketTool = new HoverLightButton(0, 0, 0, 30, "Bucket");
     HoverButton *eraser = new HoverButton (0, 0, 0, 30, "Eraser");
+    
+    
+    penTool->shortcut('p');
+    lineTool->shortcut('l');
+    rectangleTool->shortcut('r');
+    circleTool->shortcut('c');
+    bucketTool->shortcut('b');
+    eraser->shortcut('e');
 
+    penTool->labelcolor(FL_WHITE);
+    lineTool->labelcolor(FL_WHITE);
+    rectangleTool->labelcolor(FL_WHITE);
+    circleTool->labelcolor(FL_WHITE);
+    bucketTool->labelcolor(FL_WHITE);
+    eraser->labelcolor(FL_WHITE);
+    
+    
     
     penTool->type(FL_RADIO_BUTTON);
     lineTool->type(FL_RADIO_BUTTON);
@@ -1803,7 +1861,7 @@ int main (int argc, char ** argv) {
     menubar->add("Edit/Vertical Mirror", FL_CTRL + FL_SHIFT + 'v', OnVerticalMirror, widget, FL_MENU_TOGGLE);
     
     
-    menubar->add("More/Color\t\t\t\t", 'c', OnPickColor, ui);
+    menubar->add("More/Color\t\t\t\t", FL_ALT + 'c', OnPickColor, ui);
     
     menubar->add("Help/About\t\t\t\t", 0, OnAbout);
     menubar->add("Help/Help", 0, OnHelp);
