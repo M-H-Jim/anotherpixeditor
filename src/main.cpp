@@ -16,6 +16,7 @@
 #include <FL/fl_draw.H>
 #include <Fl/Fl_File_Chooser.H>
 #include <FL/fl_Flex.H>
+#include <FL/Fl_Help_Dialog.H>
 #include <FL/Fl_Light_Button.H>
 #include <Fl/Fl_Menu_Bar.H>
 #include <FL/Fl_Pack.H>
@@ -1170,6 +1171,9 @@ void ImageWidget::setImage(Image *newImage) {
     if (parent()) {
         parent()->redraw();
     }
+    if (window()) {
+        window()->redraw();
+    }
 }
 
 void ImageWidget::updateStatus() {
@@ -1298,6 +1302,11 @@ void load (Fl_Widget *w, void *data) {
         
         std::string title = std::string(filename) + " - AnotherPixEditor";
         widget->window()->label(title.c_str());
+        
+        widget->redraw();
+        if (widget->parent()) widget->parent()->redraw();
+        if (widget->window()) widget->window()->redraw();
+        
     }
     catch (...) {
         fl_alert("Failed to open file!");
@@ -1521,12 +1530,94 @@ void OnRedo (Fl_Widget *w, void *data) {
     ImageWidget *widget = (ImageWidget *)data;
     widget->redo();
 }
-void OnAbout(Fl_Widget *w, void *data) {
+void OnAbout (Fl_Widget *w, void *data) {
     fl_message(
         "AnotherPixEditor\n"
         "2026 M.H.Jim\n"
         "Built with FLTK 1.4.4"
     );
+}
+
+void OnHelp (Fl_Widget *w, void *data) {
+    const char* help_text = 
+        "<html><body bgcolor=\"black\" text=\"white\">"
+        "<h2>AnotherPixEditor - Help</h2>"
+        "<p><b>Version:</b> Alpha 1.0 2026</p>"
+        
+        "<h3>Basic Usage</h3>"
+        "<ul>"
+        "<li><b>Left Click + Drag</b> - Draw with current tool</li>"
+        "<li><b>Alt + Click</b> - Pick color from canvas (Eyedropper)</li>"
+        "<li><b>Mouse Wheel</b> - Zoom in/out</li>"
+        "<li><b>Middle Mouse Drag</b> - Pan the canvas</li>"
+        "</ul>"
+
+        "<h3>Tools</h3>"
+        "<ul>"
+        "<li><b>Pen</b> - Freehand drawing (default)</li>"
+        "<li><b>Line</b> - Draw straight lines</li>"
+        "<li><b>Rectangle</b> - Draw rectangle outlines</li>"
+        "<li><b>Circle</b> - Draw circle outlines</li>"
+        "<li><b>Bucket</b> - Flood fill (paint bucket)</li>"
+        "<li><b>Eraser</b> - Erase to white (auto switches to Pen)</li>"
+        "</ul>"
+
+        "<h3>Shortcuts</h3>"
+        "<table border='1' cellpadding='4'>"
+        "<tr><td><b>Ctrl + N</b></td><td>New canvas</td></tr>"
+        "<tr><td><b>Ctrl + O</b></td><td>Open file</td></tr>"
+        "<tr><td><b>Ctrl + S</b></td><td>Save</td></tr>"
+        "<tr><td><b>Ctrl + Z</b></td><td>Undo</td></tr>"
+        "<tr><td><b>Ctrl + Y</b></td><td>Redo</td></tr>"
+        "<tr><td><b>G</b></td><td>Toggle Grid</td></tr>"
+        "<tr><td><b>Alt + Click</b></td><td>Pick color</td></tr>"
+        "<tr><td><b>Ctrl + H</b></td><td>Flip Horizontally</td></tr>"
+        "<tr><td><b>Ctrl + V</b></td><td>Flip Vertically</td></tr>"
+        "<tr><td><b>Ctrl + Shift + H</b></td><td>Horizontal Mirror</td></tr>"
+        "<tr><td><b>Ctrl + Shift + V</b></td><td>Vertical Mirror</td></tr>"
+        "</table>"
+
+        "<h3>Other Features</h3>"
+        "<ul>"
+        "<li><b>Mirror Horizontal / Vertical</b> - Toggle from Edit menu</li>"
+        "<li><b>Flip Horizontally / Vertically</b> - From Edit menu</li>"
+        "<li><b>Brush Size</b> - Use the slider in toolbar</li>"
+        "<li><b>Color Chooser</b> - Full RGB picker on the left</li>"
+        "</ul>"
+
+        "<p><i>Tip:</i> You can also copy the color hex value with Ctrl + C (provided by FLTK).</p>"
+        
+        "<p><b>Made with FLTK</b> • Enjoy pixel art!</p>"
+        "</body></html>";
+
+    Fl_Help_Dialog *help = new Fl_Help_Dialog();
+    help->value(help_text);
+    help->show();
+}
+
+void OnLicense (Fl_Widget *w, void *data) {
+    Fl_Help_Dialog *help = new Fl_Help_Dialog();
+    std::string licenseText = 
+        "<body bgcolor=\"black\" text=\"white\">"
+        "<h2>GNU GENERAL PUBLIC LICENSE</h2>"
+        "<h3>Version 2, June 1991</h3>"
+        "<p>Copyright (C) 1989, 1991 Free Software Foundation, Inc.</p>"
+        "<p>This program is free software; you can redistribute it and/or "
+        "modify it under the terms of the GNU General Public License as "
+        "published by the Free Software Foundation; either version 2 of the "
+        "License.</p>"
+        "<p>This program is distributed in the hope that it will be useful, "
+        "but WITHOUT ANY WARRANTY; without even the implied warranty of "
+        "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.</p>"
+        "<p>You should have received a copy of the GNU General Public License "
+        "along with this program; if not, write to the Free Software Foundation, Inc.</p>"
+        "<p>For full license text, visit:<br>"
+        "<a href='https://www.gnu.org/licenses/old-licenses/gpl-2.0.html'>"
+        "https://www.gnu.org/licenses/old-licenses/gpl-2.0.html</a></p>"
+        "</body>";
+    
+    help->value(licenseText.c_str());
+    help->show();
 }
 
 
@@ -1561,12 +1652,12 @@ int main (int argc, char ** argv) {
     tools->type(Fl_Flex::VERTICAL);
     tools->spacing(10);
     
-    HoverButton *eraser = new HoverButton (0, 0, 0, 30, "Eraser");
     HoverLightButton *penTool    = new HoverLightButton(0, 0, 0, 30, "Pen");
     HoverLightButton *lineTool   = new HoverLightButton(0, 0, 0, 30, "Line");
     HoverLightButton *rectangleTool = new HoverLightButton(0, 0, 0, 30, "Rectangle");
     HoverLightButton *circleTool = new HoverLightButton(0, 0, 0, 30, "Circle");
     HoverLightButton *bucketTool = new HoverLightButton(0, 0, 0, 30, "Bucket");
+    HoverButton *eraser = new HoverButton (0, 0, 0, 30, "Eraser");
 
     
     penTool->type(FL_RADIO_BUTTON);
@@ -1649,7 +1740,7 @@ int main (int argc, char ** argv) {
     scroll->color(fl_rgb_color(26, 30, 38));
 
     
-    ImageWidget *widget = new ImageWidget(280, 50,
+    ImageWidget *widget = new ImageWidget(480, 150,
                                        img->getWidth() * 20,
                                        img->getHeight() * 20,
                                        img);
@@ -1699,23 +1790,24 @@ int main (int argc, char ** argv) {
     
     menubar->add("File/New\t\t\t\t", FL_CTRL + 'n', newCanvas, widget);
     menubar->add("File/Open" ,FL_CTRL + 'o', load, widget);
-    menubar->add("File/Save", FL_CTRL + 's', save, widget);
+    menubar->add("File/Save", FL_CTRL + 's', save, widget, FL_MENU_DIVIDER);
     menubar->add("File/Quit", FL_CTRL + 'q', quit, widget);
     
     menubar->add("Edit/Undo\t\t\t\t", FL_CTRL + 'z', OnUndo, widget);
     menubar->add("Edit/Redo", FL_CTRL + 'y', OnRedo, widget);
     menubar->add("Edit/Clear", 0, OnClear, widget);
-    menubar->add("Edit/Flip Horizontally", 0, OnFlipHorizontal, widget);
-    menubar->add("Edit/Flip Vertically", 0, OnFlipVertical, widget);
+    menubar->add("Edit/Flip Horizontally", FL_CTRL + 'h', OnFlipHorizontal, widget);
+    menubar->add("Edit/Flip Vertically", FL_CTRL + 'v', OnFlipVertical, widget);
     menubar->add("Edit/Show Grid", 'g', OnGridToggle, widget, FL_MENU_TOGGLE);
     menubar->add("Edit/Horizontal Mirror", FL_CTRL + FL_SHIFT + 'h', OnHorizontalMirror, widget, FL_MENU_TOGGLE);
     menubar->add("Edit/Vertical Mirror", FL_CTRL + FL_SHIFT + 'v', OnVerticalMirror, widget, FL_MENU_TOGGLE);
     
     
-    menubar->add("Color", 0, OnPickColor, ui);
-    menubar->add("About", 0, OnAbout);
+    menubar->add("More/Color\t\t\t\t", 'c', OnPickColor, ui);
     
-    
+    menubar->add("Help/About\t\t\t\t", 0, OnAbout);
+    menubar->add("Help/Help", 0, OnHelp);
+    menubar->add("Help/License", 0, OnLicense);
     
     
     
